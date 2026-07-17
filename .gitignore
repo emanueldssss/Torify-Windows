@@ -7,8 +7,8 @@ torify.exe
 /tor/
 /proxychains/
 
-# User config (opencode path override)
-opencode-path.txt
+# User config (target app path override)
+target-app.txt
 
 # Windows junk
 Thumbs.db

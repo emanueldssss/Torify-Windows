@@ -66,9 +66,18 @@ namespace Torify
             return x64; // fallback, will fail gracefully later
         }
 
-        static string FindOpencode()
+        static string FindTargetApp()
         {
-            // 1. Try PATH via where.exe
+            // Check if user saved a custom path
+            string configFile = Path.Combine(BaseDir, "target-app.txt");
+            if (File.Exists(configFile))
+            {
+                string saved = File.ReadAllText(configFile).Trim();
+                if (!string.IsNullOrEmpty(saved) && File.Exists(saved))
+                    return saved;
+            }
+
+            // 1. Try PATH via where.exe (looks for opencode by default)
             try
             {
                 Process p = new Process();
@@ -81,7 +90,6 @@ namespace Torify
                 p.WaitForExit();
                 if (!string.IsNullOrEmpty(result))
                 {
-                    // First line of where output
                     string first = result.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)[0];
                     if (File.Exists(first)) return first;
                 }
@@ -198,7 +206,7 @@ namespace Torify
             Console.WriteLine("    TorProxy-Win v1.0");
             Console.WriteLine("  ========================");
             Console.ForegroundColor = ConsoleColor.Gray;
-            Console.WriteLine("  Tor + Proxychains para opencode");
+            Console.WriteLine("  Tor + Proxychains for Windows");
             Console.ForegroundColor = ConsoleColor.Magenta;
             Console.WriteLine("  ========================\n");
             Console.ResetColor();
@@ -210,7 +218,7 @@ namespace Torify
             Console.ForegroundColor = ConsoleColor.Cyan;
             Console.WriteLine("  [1] Rodar TorProxy");
             Console.ResetColor();
-            Console.WriteLine("      Inicia Tor, rotaciona IP, abre opencode\n");
+            Console.WriteLine("      Inicia Tor, rotaciona IP, abre aplicativo\n");
             Console.ForegroundColor = ConsoleColor.Cyan;
             Console.WriteLine("  [2] Conferir IP");
             Console.ResetColor();
@@ -218,7 +226,7 @@ namespace Torify
             Console.ForegroundColor = ConsoleColor.Cyan;
             Console.WriteLine("  [3] Configurar");
             Console.ResetColor();
-            Console.WriteLine("      Caminho personalizado do opencode\n");
+            Console.WriteLine("      Caminho personalizado do executavel\n");
             Console.ForegroundColor = ConsoleColor.Cyan;
             Console.WriteLine("  [0] Sair\n");
             Console.ResetColor();
@@ -270,15 +278,15 @@ namespace Torify
             Console.ResetColor();
         }
 
-        static void LaunchOpencode()
+        static void LaunchTargetApp()
         {
-            string opencodePath = FindOpencode();
+            string appPath = FindTargetApp();
 
-            if (opencodePath == null)
+            if (appPath == null)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("  [!] opencode nao encontrado no sistema!");
-                Console.WriteLine("  [!] Instale com: npm install -g opencode-ai");
+                Console.WriteLine("  [!] Nenhum aplicativo configurado!");
+                Console.WriteLine("  [!] Use a opcao 3 para definir o caminho do .exe");
                 Console.ResetColor();
                 return;
             }
@@ -293,28 +301,28 @@ namespace Torify
             }
 
             Console.ForegroundColor = ConsoleColor.Magenta;
-            Console.WriteLine("\n  [*] Abrindo opencode em nova janela...");
+            Console.WriteLine("\n  [*] Abrindo aplicativo em nova janela...");
             Console.ResetColor();
-            Console.WriteLine("      " + opencodePath);
+            Console.WriteLine("      " + appPath);
 
             try
             {
                 var oc = new Process();
                 oc.StartInfo.FileName = PcExe;
-                oc.StartInfo.Arguments = "-q -f \"" + PcConf + "\" \"" + opencodePath + "\"";
+                oc.StartInfo.Arguments = "-q -f \"" + PcConf + "\" \"" + appPath + "\"";
                 oc.StartInfo.WorkingDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
                 oc.StartInfo.UseShellExecute = true;
                 oc.StartInfo.CreateNoWindow = false;
                 oc.Start();
 
                 Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine("  [+] opencode aberto! Menu continua aqui.\n");
+                Console.WriteLine("  [+] Aplicativo aberto! Menu continua aqui.\n");
                 Console.ResetColor();
             }
             catch (Exception ex)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("  [!] Erro ao abrir opencode: " + ex.Message);
+                Console.WriteLine("  [!] Erro ao abrir aplicativo: " + ex.Message);
                 Console.ResetColor();
             }
         }
@@ -375,7 +383,7 @@ namespace Torify
                 Console.ResetColor();
             }
 
-            LaunchOpencode();
+            LaunchTargetApp();
             WaitAndBack();
         }
 
@@ -428,11 +436,11 @@ namespace Torify
 
         static void OptionConfig()
         {
-            string configFile = Path.Combine(BaseDir, "opencode-path.txt");
+            string configFile = Path.Combine(BaseDir, "target-app.txt");
 
             Console.Clear();
             Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine("\n  [*] Configurar caminho do opencode\n");
+            Console.WriteLine("\n  [*] Configurar aplicativo\n");
             Console.ResetColor();
 
             string current = "";
@@ -443,7 +451,7 @@ namespace Torify
             }
             else
             {
-                string auto = FindOpencode();
+                string auto = FindTargetApp();
                 if (auto != null)
                     Console.WriteLine("  Detectado automaticamente: " + auto);
                 else
@@ -451,15 +459,15 @@ namespace Torify
             }
 
             Console.WriteLine();
-            Console.WriteLine("  Digite o caminho completo do opencode.exe");
-            Console.WriteLine("  (ou Enter para manter, 'auto' para detectar, 'reset' para limpar):");
+            Console.WriteLine("  Digite o caminho completo do .exe");
+            Console.WriteLine("  (Enter para manter, 'auto' para detectar, 'reset' para limpar):");
             Console.Write("\n  > ");
             string input = Console.ReadLine().Trim();
 
             if (input == "") { /* keep current */ }
             else if (input.ToLower() == "auto")
             {
-                string found = FindOpencode();
+                string found = FindTargetApp();
                 if (found != null)
                 {
                     File.WriteAllText(configFile, found);
@@ -470,7 +478,7 @@ namespace Torify
                 else
                 {
                     Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("\n  [!] opencode nao encontrado no sistema.");
+                    Console.WriteLine("\n  [!] Nenhum aplicativo encontrado.");
                     Console.ResetColor();
                 }
             }
