@@ -360,7 +360,7 @@ namespace Torify
             Console.Clear();
             Console.ForegroundColor = ConsoleColor.Magenta;
             Console.WriteLine("\n  ========================");
-            Console.WriteLine("    TorProxy-Win v1.0");
+            Console.WriteLine("    Torify v1.0");
             Console.WriteLine("  ========================");
             Console.ForegroundColor = ConsoleColor.Gray;
             Console.WriteLine("  Tor + Proxychains for Windows");
@@ -373,7 +373,7 @@ namespace Torify
         {
             Logo();
             Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine("  [1] Rodar TorProxy");
+            Console.WriteLine("  [1] Rodar Torify");
             Console.ResetColor();
             Console.WriteLine("      Inicia Tor e rotaciona IP\n");
             Console.ForegroundColor = ConsoleColor.Cyan;
@@ -496,7 +496,7 @@ namespace Torify
         {
             Console.Clear();
             Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine("\n  [*] Iniciando TorProxy...\n");
+            Console.WriteLine("\n  [*] Iniciando Torify...\n");
             Console.ResetColor();
 
             StartTor();
@@ -878,7 +878,7 @@ namespace Torify
         {
             try
             {
-                Console.Title = "Torproxy";
+                Console.Title = "Torify";
                 Console.OutputEncoding = System.Text.Encoding.UTF8;
                 Console.InputEncoding = System.Text.Encoding.UTF8;
 

@@ -1,4 +1,4 @@
-# Torproxy-win
+# Torify
 
 Roteie qualquer aplicativo Windows pelo Tor com um clique.
 
@@ -33,9 +33,9 @@ O setup baixa as dependências e compila o `torify.exe`.
 
 ```powershell
 $ws = New-Object -ComObject WScript.Shell
-$sc = $ws.CreateShortcut("$env:USERPROFILE\Desktop\Torproxy.lnk")
-$sc.TargetPath = "C:\caminho\completo\até\Torproxy-win\torify.exe"
-$sc.WorkingDirectory = "C:\caminho\completo\até\Torproxy-win"
+$sc = $ws.CreateShortcut("$env:USERPROFILE\Desktop\Torify.lnk")
+$sc.TargetPath = "C:\caminho\completo\até\Torify\torify.exe"
+$sc.WorkingDirectory = "C:\caminho\completo\até\Torify"
 $sc.Save()
 ```
 
@@ -47,12 +47,12 @@ Execute `torify.exe`. O menu:
 
 ```
   ========================
-    TorProxy-Win v1.0
+    Torify v1.0
   ========================
   Tor + Proxychains for Windows
   ========================
 
-  [1] Rodar TorProxy
+  [1] Rodar Torify
   [2] Conferir IP
   [3] Configurar
   [4] Adicionar App
@@ -69,7 +69,7 @@ Execute `torify.exe`. O menu:
 Uma janela do Windows vai abrir para você selecionar um arquivo `.exe`. Escolha o programa que você quer rotear pelo Tor (navegador, cliente de chat, qualquer coisa).
 
 Assim que selecionar, o programa:
-- Salva o app numa lista (arquivo `apps.txt` na pasta do Torproxy)
+- Salva o app numa lista (arquivo `apps.txt` na pasta do Torify)
 - Inicia o Tor (se ainda não tiver rodando)
 - Abre o app via proxychains — o tráfego dele vai passar pelo Tor
 
