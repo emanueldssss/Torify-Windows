@@ -13,18 +13,21 @@ Inicia o Tor daemon, configura proxychains e abre programas selecionados passand
 - Windows 10 ou 11 (64-bit)
 - .NET Framework 4.x (já vem instalado no Windows)
 
-### Passo a passo
+### Opção 1: download direto do .exe (recomendado)
+
+Baixe o `torify.exe` da [release](https://github.com/emanueldssss/Torify/releases), coloque em uma pasta e dê 2 cliques.
+
+Na primeira execução ele baixa automaticamente o Tor + Proxychains (cerca de 30 MB) e extrai tudo. Depois disso, abre direto o menu.
+
+### Opção 2: usando o repositório completo
 
 ```powershell
-# 1. Clone o repositório
-git clone https://github.com/emanueldssss/Torproxy-win.git
-cd Torproxy-win
-
-# 2. Execute o setup (baixa Tor + proxychains + compila o menu)
+git clone https://github.com/emanueldssss/Torify.git
+cd Torify
 powershell -ExecutionPolicy Bypass -File setup.ps1
 ```
 
-O setup baixa automaticamente o Tor Expert Bundle (~21 MB) e o Proxychains-Windows, cria os arquivos de configuração (`torrc`, `proxychains.conf`) e compila o `torify.exe`. Nada manual, nada hardcoded.
+O setup baixa as dependências e compila o `torify.exe`.
 
 ### Opcional: atalho no desktop
 
