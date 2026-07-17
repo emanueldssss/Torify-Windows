@@ -729,36 +729,52 @@ namespace Torify
         [STAThread]
         static void Main()
         {
-            InitPaths();
-            SetAlpha(210);
-
-            string op = "";
-            do
+            try
             {
-                DrawMenu();
-                op = Console.ReadLine().Trim();
-                switch (op)
-                {
-                    case "1": OptionTorProxy(); break;
-                    case "2": OptionCheckIP(); break;
-                    case "3": OptionConfig(); break;
-                    case "4": OptionAddApp(); break;
-                    case "5": OptionOpenApp(); break;
-                    case "0":
-                        Console.ForegroundColor = ConsoleColor.Gray;
-                        Console.WriteLine("\n  Saindo...\n");
-                        Console.ResetColor();
-                        break;
-                    default:
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine("\n  Opção inválida!\n");
-                        Console.ResetColor();
-                        System.Threading.Thread.Sleep(1000);
-                        break;
-                }
-            } while (op != "0");
+                Console.Title = "Torproxy";
+                Console.OutputEncoding = System.Text.Encoding.UTF8;
+                Console.InputEncoding = System.Text.Encoding.UTF8;
 
-            SetAlpha(255);
+                InitPaths();
+                SetAlpha(210);
+
+                string op = "";
+                do
+                {
+                    DrawMenu();
+                    op = Console.ReadLine().Trim();
+                    switch (op)
+                    {
+                        case "1": OptionTorProxy(); break;
+                        case "2": OptionCheckIP(); break;
+                        case "3": OptionConfig(); break;
+                        case "4": OptionAddApp(); break;
+                        case "5": OptionOpenApp(); break;
+                        case "0":
+                            Console.ForegroundColor = ConsoleColor.Gray;
+                            Console.WriteLine("\n  Saindo...\n");
+                            Console.ResetColor();
+                            break;
+                        default:
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            Console.WriteLine("\n  Opção inválida!\n");
+                            Console.ResetColor();
+                            System.Threading.Thread.Sleep(1000);
+                            break;
+                    }
+                } while (op != "0");
+
+                SetAlpha(255);
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("\n  [!] Erro ao iniciar: " + ex.Message);
+                Console.WriteLine("      Verifique se a pasta tor/ e proxychains/ existem.");
+                Console.ResetColor();
+                Console.WriteLine("\n  Pressione qualquer tecla para sair...");
+                Console.ReadKey();
+            }
         }
     }
 }
