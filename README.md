@@ -15,15 +15,15 @@ Inicia o Tor daemon, configura proxychains e abre programas selecionados passand
 
 ### Opção 1: download direto do .exe (recomendado)
 
-Baixe o `torify.exe` da [release](https://github.com/emanueldssss/Torify/releases), coloque em uma pasta e dê 2 cliques.
+Baixe o `torify.exe` da [release](https://github.com/emanueldssss/Torify-Windows/releases), coloque em uma pasta e dê 2 cliques.
 
-Na primeira execução ele baixa automaticamente o Tor + Proxychains (cerca de 30 MB) e extrai tudo. Depois disso, abre direto o menu.
+Na primeira execução ele baixa automaticamente o Tor + Proxychains (cerca de 30 MB) para `%LOCALAPPDATA%\Torify\` e extrai tudo. Depois disso, abre direto o menu. O .exe pode ser movido para qualquer lugar — as dependências ficam isoladas no LocalAppData.
 
 ### Opção 2: usando o repositório completo
 
 ```powershell
-git clone https://github.com/emanueldssss/Torify.git
-cd Torify
+git clone https://github.com/emanueldssss/Torify-Windows.git
+cd Torify-Windows
 powershell -ExecutionPolicy Bypass -File setup.ps1
 ```
 
@@ -34,8 +34,8 @@ O setup baixa as dependências e compila o `torify.exe`.
 ```powershell
 $ws = New-Object -ComObject WScript.Shell
 $sc = $ws.CreateShortcut("$env:USERPROFILE\Desktop\Torify.lnk")
-$sc.TargetPath = "C:\caminho\completo\até\Torify\torify.exe"
-$sc.WorkingDirectory = "C:\caminho\completo\até\Torify"
+$sc.TargetPath = "C:\caminho\completo\até\torify.exe"
+$sc.WorkingDirectory = "%LOCALAPPDATA%\Torify"
 $sc.Save()
 ```
 
@@ -47,7 +47,7 @@ Execute `torify.exe`. O menu:
 
 ```
   ========================
-    Torify v1.0
+    Torify v1.1
   ========================
   Tor + Proxychains for Windows
   ========================
@@ -118,27 +118,30 @@ Mostra seu IP real (sem proxy) e o IP do Tor lado a lado. Se forem diferentes, e
 ## Estrutura de arquivos
 
 ```
-Torproxy-win/
-├── src/torify.cs            # código fonte (C#)
-├── setup.ps1                # instalação completa
-├── build.ps1                # compila o .exe manualmente
+Torify-Windows/                  # repositório (código fonte)
+├── src/torify.cs                # código fonte (C#)
+├── setup.ps1                    # pré-baixa dependências
+├── build.ps1                    # compila o .exe manualmente
 ├── .gitignore
 ├── README.md
+└── torify.ico
+
+%LOCALAPPDATA%/Torify/           # runtime (criado automaticamente)
+├── torify.exe                   # menu compilado
+├── apps.txt                     # lista de apps que você adicionou
+├── target-app.txt               # caminho do app padrão (opção 3)
+├── .setup-complete              # marcador de setup concluído
 │
-├── torify.exe               # menu compilado (gerado pelo setup)
-├── apps.txt                 # lista de apps que você adicionou
-├── target-app.txt           # caminho do app padrão (opção 3)
-│
-├── tor/                     # Tor Expert Bundle (baixado pelo setup)
+├── tor/                         # Tor Expert Bundle
 │   ├── tor.exe
 │   └── Data/Tor/torrc
 │
-└── proxychains/             # proxychains-windows (baixado pelo setup)
+└── proxychains/                 # proxychains-windows
     ├── proxychains_win32_x64.exe
     └── proxychains.conf
 ```
 
-Tudo portátil. Nada registra no sistema. Copie a pasta inteira para outro PC que funciona — só rodar `setup.ps1` de novo para baixar as dependências.
+O .exe é portátil — você pode mover ele para qualquer lugar. As dependências ficam isoladas em `%LOCALAPPDATA%\Torify\`.
 
 ---
 

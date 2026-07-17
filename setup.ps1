@@ -7,10 +7,13 @@
 #>
 
 $ErrorActionPreference = "Stop"
-$Base = Split-Path -Parent $MyInvocation.MyCommand.Path
+$Base = "$env:LOCALAPPDATA\Torify"
+
+# Garante que a pasta existe
+if (!(Test-Path $Base)) { New-Item -ItemType Directory -Path $Base -Force | Out-Null }
 
 Write-Host "`n  ========================" -ForegroundColor Magenta
-Write-Host "     TORIFY - Setup" -ForegroundColor Magenta
+Write-Host "     TORIFY v1.1 - Setup" -ForegroundColor Magenta
 Write-Host "  ========================" -ForegroundColor Magenta
 Write-Host "`n"
 

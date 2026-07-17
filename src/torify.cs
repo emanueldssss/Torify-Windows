@@ -50,9 +50,14 @@ namespace Torify
 
         static void InitPaths()
         {
-            // Find our own directory — works regardless of where the exe lives
-            string exePath = Assembly.GetExecutingAssembly().Location;
-            BaseDir = Path.GetDirectoryName(exePath);
+            // Use LocalAppData — follows Windows convention, no admin needed
+            BaseDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Torify"
+            );
+
+            // Ensure the base directory exists
+            Directory.CreateDirectory(BaseDir);
 
             TorDir  = Path.Combine(BaseDir, "tor");
             TorExe  = Path.Combine(TorDir, "tor.exe");
@@ -360,7 +365,7 @@ namespace Torify
             Console.Clear();
             Console.ForegroundColor = ConsoleColor.Magenta;
             Console.WriteLine("\n  ========================");
-            Console.WriteLine("    Torify v1.0");
+            Console.WriteLine("    Torify v1.1");
             Console.WriteLine("  ========================");
             Console.ForegroundColor = ConsoleColor.Gray;
             Console.WriteLine("  Tor + Proxychains for Windows");
