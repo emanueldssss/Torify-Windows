@@ -87,7 +87,7 @@ Paths sao detectados automaticamente — funciona em qualquer maquina sem config
 Ou direto com o compilador C#:
 
 ```powershell
-& "$env:windir\Microsoft.NET\Framework\v4.0.30319\csc.exe" /target:exe /out:torify.exe src\torify.cs
+& "$env:windir\Microsoft.NET\Framework\v4.0.30319\csc.exe" /target:exe /reference:System.Windows.Forms.dll /out:torify.exe src\torify.cs
 ```
 
 ---

@@ -150,7 +150,7 @@ if (!($csc) -or !(Test-Path $csc)) {
     exit 1
 }
 
-& $csc /target:exe /out:"$Base\torify.exe" "$Base\src\torify.cs" 2>&1 | Out-Null
+& $csc /target:exe /reference:System.Windows.Forms.dll /out:"$Base\torify.exe" "$Base\src\torify.cs" 2>&1 | Out-Null
 if (Test-Path "$Base\torify.exe") {
     Write-Host "  [+] torify.exe compilado! ($((Get-Item "$Base\torify.exe").Length / 1KB) KB)" -ForegroundColor Green
 } else {

@@ -1,11 +1,19 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Windows.Forms;
 
 namespace Torify
 {
+    class AppEntry
+    {
+        public string Name { get; set; }
+        public string Path { get; set; }
+    }
+
     class Program
     {
         [DllImport("user32.dll")]
@@ -22,6 +30,7 @@ namespace Torify
         static string PcDir;
         static string PcExe;
         static string PcConf;
+        static string AppsFile;
 
         static void SetAlpha(byte alpha)
         {
@@ -51,6 +60,7 @@ namespace Torify
             PcDir   = Path.Combine(BaseDir, "proxychains");
             PcExe   = FindPcExe();
             PcConf  = Path.Combine(PcDir, "proxychains.conf");
+            AppsFile = Path.Combine(BaseDir, "apps.txt");
         }
 
         static string FindPcExe()
@@ -227,6 +237,14 @@ namespace Torify
             Console.WriteLine("  [3] Configurar");
             Console.ResetColor();
             Console.WriteLine("      Caminho personalizado do executavel\n");
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine("  [4] Adicionar App");
+            Console.ResetColor();
+            Console.WriteLine("      Seleciona um .exe e abre via Tor\n");
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine("  [5] Abrir App com Tor");
+            Console.ResetColor();
+            Console.WriteLine("      Escolhe um app salvo e abre via Tor\n");
             Console.ForegroundColor = ConsoleColor.Cyan;
             Console.WriteLine("  [0] Sair\n");
             Console.ResetColor();
@@ -506,6 +524,210 @@ namespace Torify
             WaitAndBack();
         }
 
+        static void AddAppToList(string path)
+        {
+            var apps = LoadApps();
+            string name = Path.GetFileNameWithoutExtension(path);
+            // Avoid duplicates
+            for (int i = 0; i < apps.Count; i++)
+            {
+                if (apps[i].Path.Equals(path, StringComparison.OrdinalIgnoreCase))
+                {
+                    apps.RemoveAt(i);
+                    break;
+                }
+            }
+            apps.Insert(0, new AppEntry { Name = name, Path = path });
+            SaveApps(apps);
+        }
+
+        static List<AppEntry> LoadApps()
+        {
+            var list = new List<AppEntry>();
+            if (!File.Exists(AppsFile)) return list;
+            foreach (string line in File.ReadAllLines(AppsFile))
+            {
+                string trimmed = line.Trim();
+                if (string.IsNullOrEmpty(trimmed)) continue;
+                int sep = trimmed.IndexOf('|');
+                if (sep > 0 && sep < trimmed.Length - 1)
+                {
+                    list.Add(new AppEntry
+                    {
+                        Name = trimmed.Substring(0, sep),
+                        Path = trimmed.Substring(sep + 1)
+                    });
+                }
+            }
+            return list;
+        }
+
+        static void SaveApps(List<AppEntry> apps)
+        {
+            using (var w = new StreamWriter(AppsFile, false))
+            {
+                foreach (var a in apps)
+                {
+                    w.WriteLine(a.Name + "|" + a.Path);
+                }
+            }
+        }
+
+        static void OptionAddApp()
+        {
+            Console.Clear();
+            Logo();
+
+            // Check Tor + proxychains first
+            if (!File.Exists(PcExe))
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("  [!] proxychains nao encontrado.");
+                Console.WriteLine("      Execute setup.ps1 primeiro.\n");
+                Console.ResetColor();
+                WaitAndBack();
+                return;
+            }
+
+            StartTor();
+
+            var dialog = new OpenFileDialog();
+            dialog.Title = "Selecione o executavel para rotear via Tor";
+            dialog.Filter = "Executaveis (*.exe)|*.exe|Todos (*.*)|*.*";
+            dialog.Multiselect = false;
+            dialog.RestoreDirectory = true;
+
+            if (dialog.ShowDialog() == DialogResult.OK)
+            {
+                string path = dialog.FileName;
+                AddAppToList(path);
+
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.Write("\n  [*] Rodando via Tor: ");
+                Console.ResetColor();
+                Console.WriteLine(Path.GetFileName(path));
+
+                try
+                {
+                    var proc = new Process();
+                    proc.StartInfo.FileName = PcExe;
+                    proc.StartInfo.Arguments = "-q -f \"" + PcConf + "\" \"" + path + "\"";
+                    proc.StartInfo.UseShellExecute = true;
+                    proc.StartInfo.CreateNoWindow = false;
+                    proc.Start();
+
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine("  [+] App aberto! Adicionado a lista.\n");
+                    Console.ResetColor();
+                }
+                catch (Exception ex)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("  [!] Erro: " + ex.Message + "\n");
+                    Console.ResetColor();
+                }
+            }
+            else
+            {
+                Console.WriteLine("\n  Nenhum arquivo selecionado.\n");
+            }
+
+            WaitAndBack();
+        }
+
+        static void OptionOpenApp()
+        {
+            Console.Clear();
+            Logo();
+
+            var apps = LoadApps();
+            if (apps.Count == 0)
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("  Nenhum app salvo. Use a opcao 4 para adicionar.\n");
+                Console.ResetColor();
+                WaitAndBack();
+                return;
+            }
+
+            if (!File.Exists(PcExe))
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("  [!] proxychains nao encontrado.");
+                Console.WriteLine("      Execute setup.ps1 primeiro.\n");
+                Console.ResetColor();
+                WaitAndBack();
+                return;
+            }
+
+            StartTor();
+
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine("  Apps salvos:\n");
+            Console.ResetColor();
+
+            for (int i = 0; i < apps.Count; i++)
+            {
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.Write("  [{0}] ", i + 1);
+                Console.ResetColor();
+                Console.WriteLine(apps[i].Name);
+                Console.ForegroundColor = ConsoleColor.DarkGray;
+                Console.WriteLine("      {0}", apps[i].Path);
+                Console.ResetColor();
+            }
+
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.WriteLine("\n  [0] Voltar");
+            Console.ResetColor();
+            Console.Write("\n  Escolha: ");
+
+            string input = Console.ReadLine().Trim();
+            int idx = 0;
+            if (int.TryParse(input, out idx) && idx >= 1 && idx <= apps.Count)
+            {
+                string path = apps[idx - 1].Path;
+
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.Write("\n  [*] Rodando via Tor: ");
+                Console.ResetColor();
+                Console.WriteLine(apps[idx - 1].Name);
+
+                // Send NEWNYM
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.Write("  [*] Rotacionando IP... ");
+                Console.ResetColor();
+                SendNEWNYM();
+                System.Threading.Thread.Sleep(2000);
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("OK!\n");
+                Console.ResetColor();
+
+                try
+                {
+                    var proc = new Process();
+                    proc.StartInfo.FileName = PcExe;
+                    proc.StartInfo.Arguments = "-q -f \"" + PcConf + "\" \"" + path + "\"";
+                    proc.StartInfo.UseShellExecute = true;
+                    proc.StartInfo.CreateNoWindow = false;
+                    proc.Start();
+
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine("  [+] App aberto! Menu continua aqui.\n");
+                    Console.ResetColor();
+                }
+                catch (Exception ex)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("  [!] Erro: " + ex.Message + "\n");
+                    Console.ResetColor();
+                }
+            }
+
+            WaitAndBack();
+        }
+
+        [STAThread]
         static void Main()
         {
             InitPaths();
@@ -521,6 +743,8 @@ namespace Torify
                     case "1": OptionTorProxy(); break;
                     case "2": OptionCheckIP(); break;
                     case "3": OptionConfig(); break;
+                    case "4": OptionAddApp(); break;
+                    case "5": OptionOpenApp(); break;
                     case "0":
                         Console.ForegroundColor = ConsoleColor.Gray;
                         Console.WriteLine("\n  Saindo...\n");

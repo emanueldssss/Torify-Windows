@@ -17,7 +17,7 @@ if (!($csc) -or !(Test-Path $csc)) {
 }
 
 Write-Host "[*] Compilando..." -ForegroundColor Cyan
-& $csc /target:exe /out:"$Base\torify.exe" "$Base\src\torify.cs" 2>&1
+& $csc /target:exe /reference:System.Windows.Forms.dll /out:"$Base\torify.exe" "$Base\src\torify.cs" 2>&1
 
 if (Test-Path "$Base\torify.exe") {
     $size = (Get-Item "$Base\torify.exe").Length / 1KB
