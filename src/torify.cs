@@ -622,6 +622,181 @@ namespace Torify
             Console.ResetColor();
         }
 
+        // ── Navegadores conhecidos ────────────────────────────────────────
+        // Para cada um: se encontrar instância rodando, mata antes de abrir
+        // com proxy. Adiciona flags explícitas de proxy SOCKS5 + anti-WebRTC.
+        static readonly Dictionary<string, string[]> KnownBrowsers = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "chrome.exe",    new[] { "--proxy-server=\"socks5://127.0.0.1:9050\"", "--host-resolver-rules=\"MAP * ~NOTFOUND , EXCLUDE 127.0.0.1\"", "--new-window", "--disable-webrtc-hw-encoding" } },
+            { "msedge.exe",    new[] { "--proxy-server=\"socks5://127.0.0.1:9050\"", "--host-resolver-rules=\"MAP * ~NOTFOUND , EXCLUDE 127.0.0.1\"", "--new-window", "--disable-webrtc-hw-encoding" } },
+            { "brave.exe",     new[] { "--proxy-server=\"socks5://127.0.0.1:9050\"", "--host-resolver-rules=\"MAP * ~NOTFOUND , EXCLUDE 127.0.0.1\"", "--new-window", "--disable-webrtc-hw-encoding" } },
+            { "opera.exe",     new[] { "--proxy-server=\"socks5://127.0.0.1:9050\"", "--host-resolver-rules=\"MAP * ~NOTFOUND , EXCLUDE 127.0.0.1\"", "--new-window", "--disable-webrtc-hw-encoding" } },
+            { "firefox.exe",   new[] { "-no-remote", "-new-instance", "-private-window" } },
+            { "waterfox.exe",  new[] { "-no-remote", "-new-instance", "-private-window" } },
+            { "librewolf.exe", new[] { "-no-remote", "-new-instance", "-private-window" } },
+        };
+
+        static string GetBrowserExeName(string path)
+        {
+            string name = Path.GetFileName(path);
+            foreach (var kv in KnownBrowsers)
+            {
+                if (name.Equals(kv.Key, StringComparison.OrdinalIgnoreCase))
+                    return kv.Key;
+            }
+            return null;
+        }
+
+        static string[] GetBrowserArgs(string path)
+        {
+            string key = GetBrowserExeName(path);
+            if (key != null && KnownBrowsers.ContainsKey(key))
+                return KnownBrowsers[key];
+            return null;
+        }
+
+        static void KillProcessByName(string name)
+        {
+            try
+            {
+                foreach (var p in Process.GetProcessesByName(name))
+                {
+                    Console.WriteLine("      Fechando {0} (PID {1})...", name, p.Id);
+                    p.Kill();
+                    if (!p.WaitForExit(5000))
+                        Console.WriteLine("      [!] N\u00e3o foi poss\u00edvel encerrar {0}", name);
+                }
+            }
+            catch { }
+        }
+
+        static void KillBrowser(string path)
+        {
+            string exeName = GetBrowserExeName(path);
+            if (exeName == null) return;
+            string procName = Path.GetFileNameWithoutExtension(exeName);
+            KillProcessByName(procName);
+            Thread.Sleep(500);
+        }
+
+        static string BuildBrowserArgs(string path, string[] extraFlags)
+        {
+            if (extraFlags == null || extraFlags.Length == 0)
+                return "\"" + path + "\"";
+
+            var sb = new StringBuilder();
+            foreach (string flag in extraFlags)
+                sb.Append(" ").Append(flag);
+            sb.Append(" \"").Append(path).Append("\"");
+            return sb.ToString();
+        }
+
+        static void LaunchAppViaProxy(string path, bool doNewnym)
+        {
+            if (!File.Exists(PcExe))
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("  [!] proxychains n\u00e3o encontrado em:");
+                Console.WriteLine("      " + PcExe);
+                Console.ResetColor();
+                return;
+            }
+
+            string exeName = GetBrowserExeName(path);
+            bool isBrowser = exeName != null;
+
+            if (isBrowser)
+            {
+                Console.WriteLine("  [*] Navegador detectado: {0}", exeName);
+                Console.WriteLine("  [*] Fechando inst\u00e2ncias existentes...");
+                KillBrowser(path);
+
+                if (doNewnym)
+                {
+                    Console.Write("  [*] Rotacionando IP... ");
+                    SendNEWNYM();
+                    Thread.Sleep(2000);
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine("OK!");
+                    Console.ResetColor();
+                }
+
+                string[] extraArgs = KnownBrowsers[exeName];
+                string args = "-q -f \"" + PcConf + "\"";
+                foreach (string flag in extraArgs)
+                    args += " " + flag;
+                args += " \"" + path + "\"";
+
+                Console.ForegroundColor = ConsoleColor.Magenta;
+                Console.WriteLine("  [*] Abrindo com proxy for\u00e7ado + flags anti-WebRTC...");
+                Console.ResetColor();
+                Console.WriteLine("      " + args);
+
+                try
+                {
+                    var proc = new Process();
+                    proc.StartInfo.FileName = PcExe;
+                    proc.StartInfo.Arguments = args;
+                    proc.StartInfo.WorkingDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                    proc.StartInfo.UseShellExecute = true;
+                    proc.StartInfo.CreateNoWindow = false;
+                    proc.Start();
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine("  [+] Navegador aberto via Tor com proxy expl\u00edcito!\n");
+                    Console.ResetColor();
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.WriteLine("  [!] AVISO: WebRTC pode vazar IP real mesmo com proxy.");
+                    Console.WriteLine("      Instale uBlock Origin ou WebRTC Leak Prevent");
+                    Console.WriteLine("      e desabilite WebRTC nas configura\u00e7\u00f5es do navegador.\n");
+                    Console.ResetColor();
+                }
+                catch (Exception ex)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("  [!] Erro: " + ex.Message);
+                    Console.ResetColor();
+                }
+            }
+            else
+            {
+                // App comum: usa proxychains normalmente (sem flags extras)
+                if (doNewnym)
+                {
+                    Console.Write("  [*] Rotacionando IP... ");
+                    SendNEWNYM();
+                    Thread.Sleep(2000);
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine("OK!");
+                    Console.ResetColor();
+                }
+
+                Console.ForegroundColor = ConsoleColor.Magenta;
+                Console.WriteLine("\n  [*] Abrindo aplicativo em nova janela...");
+                Console.ResetColor();
+                Console.WriteLine("      " + path);
+
+                try
+                {
+                    var proc = new Process();
+                    proc.StartInfo.FileName = PcExe;
+                    proc.StartInfo.Arguments = "-q -f \"" + PcConf + "\" \"" + path + "\"";
+                    proc.StartInfo.WorkingDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                    proc.StartInfo.UseShellExecute = true;
+                    proc.StartInfo.CreateNoWindow = false;
+                    proc.Start();
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine("  [+] Aplicativo aberto via proxy! Menu continua aqui.\n");
+                    Console.ResetColor();
+                }
+                catch (Exception ex)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("  [!] Erro ao abrir aplicativo: " + ex.Message);
+                    Console.ResetColor();
+                }
+            }
+        }
+
         static void LaunchTargetApp()
         {
             string appPath = FindTargetApp();
@@ -633,37 +808,7 @@ namespace Torify
                 Console.ResetColor();
                 return;
             }
-            if (!File.Exists(PcExe))
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("  [!] proxychains n\u00e3o encontrado em:");
-                Console.WriteLine("      " + PcExe);
-                Console.ResetColor();
-                return;
-            }
-            Console.ForegroundColor = ConsoleColor.Magenta;
-            Console.WriteLine("\n  [*] Abrindo aplicativo em nova janela...");
-            Console.ResetColor();
-            Console.WriteLine("      " + appPath);
-            try
-            {
-                var oc = new Process();
-                oc.StartInfo.FileName = PcExe;
-                oc.StartInfo.Arguments = "-q -f \"" + PcConf + "\" \"" + appPath + "\"";
-                oc.StartInfo.WorkingDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-                oc.StartInfo.UseShellExecute = true;
-                oc.StartInfo.CreateNoWindow = false;
-                oc.Start();
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine("  [+] Aplicativo aberto via proxy! Menu continua aqui.\n");
-                Console.ResetColor();
-            }
-            catch (Exception ex)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("  [!] Erro ao abrir aplicativo: " + ex.Message);
-                Console.ResetColor();
-            }
+            LaunchAppViaProxy(appPath, true);
         }
 
         static void OptionTorProxy()
@@ -902,24 +1047,8 @@ namespace Torify
                 Console.Write("\n  [*] Rodando via Tor: ");
                 Console.ResetColor();
                 Console.WriteLine(Path.GetFileName(path));
-                try
-                {
-                    var proc = new Process();
-                    proc.StartInfo.FileName = PcExe;
-                    proc.StartInfo.Arguments = "-q -f \"" + PcConf + "\" \"" + path + "\"";
-                    proc.StartInfo.UseShellExecute = true;
-                    proc.StartInfo.CreateNoWindow = false;
-                    proc.Start();
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine("  [+] App aberto via proxy! Adicionado \u00e0 lista.\n");
-                    Console.ResetColor();
-                }
-                catch (Exception ex)
-                {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("  [!] Erro: " + ex.Message + "\n");
-                    Console.ResetColor();
-                }
+                LaunchAppViaProxy(path, false);
+                Console.WriteLine("  [+] App adicionado \u00e0 lista.\n");
             }
             else
                 Console.WriteLine("\n  Nenhum arquivo selecionado.\n");
@@ -976,32 +1105,7 @@ namespace Torify
                 Console.Write("\n  [*] Rodando via Tor: ");
                 Console.ResetColor();
                 Console.WriteLine(apps[idx - 1].Name);
-                Console.ForegroundColor = ConsoleColor.Cyan;
-                Console.Write("  [*] Rotacionando IP... ");
-                Console.ResetColor();
-                SendNEWNYM();
-                Thread.Sleep(2000);
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine("OK!\n");
-                Console.ResetColor();
-                try
-                {
-                    var proc = new Process();
-                    proc.StartInfo.FileName = PcExe;
-                    proc.StartInfo.Arguments = "-q -f \"" + PcConf + "\" \"" + path + "\"";
-                    proc.StartInfo.UseShellExecute = true;
-                    proc.StartInfo.CreateNoWindow = false;
-                    proc.Start();
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine("  [+] App aberto via proxy! Menu continua aqui.\n");
-                    Console.ResetColor();
-                }
-                catch (Exception ex)
-                {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("  [!] Erro: " + ex.Message + "\n");
-                    Console.ResetColor();
-                }
+                LaunchAppViaProxy(path, true);
             }
             WaitAndBack();
         }
@@ -1078,29 +1182,7 @@ namespace Torify
                 return;
             }
 
-            Console.ForegroundColor = ConsoleColor.Magenta;
-            Console.WriteLine("  [*] Abrindo aplicativo via Tor...");
-            Console.ResetColor();
-            try
-            {
-                var appProcess = new Process();
-                appProcess.StartInfo.FileName = PcExe;
-                appProcess.StartInfo.Arguments = "-q -f \"" + PcConf + "\" \"" + appPath + "\"";
-                appProcess.StartInfo.UseShellExecute = true;
-                appProcess.StartInfo.CreateNoWindow = false;
-                appProcess.Start();
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine("  [+] App aberto!\n");
-                Console.ResetColor();
-            }
-            catch (Exception ex)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("  [!] Erro ao abrir app: " + ex.Message);
-                Console.ResetColor();
-                WaitAndBack();
-                return;
-            }
+            LaunchAppViaProxy(appPath, false);
 
             _autoRotateRunning = true;
             int cycle = 0;
