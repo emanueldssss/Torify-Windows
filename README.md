@@ -1,8 +1,8 @@
 # Torify
 
-Roteie qualquer aplicativo Windows pelo Tor com um clique.
+Roteia qualquer aplicativo Windows pelo Tor. Usa Tor Expert Bundle + proxychains-windows.
 
-Inicia o Tor daemon, configura proxychains e abre programas selecionados passando pelo proxy — com rotação automática de IP a cada sessão. O terminal do menu nunca fecha; cada app abre em janela separada.
+Feito pra contornar limites diários de CLIs e serviços que restringem por IP. Cada sessão usa um IP Tor diferente, e a rotação automática troca o IP em intervalos definidos.
 
 ---
 
@@ -11,15 +11,15 @@ Inicia o Tor daemon, configura proxychains e abre programas selecionados passand
 ### Requisitos
 
 - Windows 10 ou 11 (64-bit)
-- .NET Framework 4.x (já vem instalado no Windows)
+- .NET Framework 4.x (vem instalado no Windows)
 
-### Opção 1: download direto do .exe (recomendado)
+### Método 1: download do .exe (recomendado)
 
-Baixe o `torify.exe` da [release](https://github.com/emanueldssss/Torify-Windows/releases), coloque em uma pasta e dê 2 cliques.
+Baixa o `torify.exe` da [release](https://github.com/emanueldssss/Torify-Windows/releases), coloca em qualquer pasta e executa.
 
-Na primeira execução ele baixa automaticamente o Tor + Proxychains (cerca de 30 MB) para `%LOCALAPPDATA%\Torify\` e extrai tudo. Depois disso, abre direto o menu. O .exe pode ser movido para qualquer lugar — as dependências ficam isoladas no LocalAppData.
+Na primeira execução ele baixa Tor (~30 MB) e proxychains automaticamente pra `%LOCALAPPDATA%\Torify\`. O .exe é portátil — pode mover pra qualquer lugar.
 
-### Opção 2: usando o repositório completo
+### Método 2: compilar do código
 
 ```powershell
 git clone https://github.com/emanueldssss/Torify-Windows.git
@@ -27,9 +27,7 @@ cd Torify-Windows
 powershell -ExecutionPolicy Bypass -File setup.ps1
 ```
 
-O setup baixa as dependências e compila o `torify.exe`.
-
-### Opcional: atalho no desktop
+### Atalho no desktop (opcional)
 
 ```powershell
 $ws = New-Object -ComObject WScript.Shell
@@ -43,95 +41,99 @@ $sc.Save()
 
 ## Como usar
 
-Execute `torify.exe`. O menu:
-
 ```
   ========================
-    Torify v1.2
-  ========================
-  Tor + Proxychains for Windows
+    Torify v1.3
   ========================
 
-  [1] Rodar Torify
+  [1] Iniciar Tor + Verificar Conexão
   [2] Conferir IP
   [3] Configurar
   [4] Adicionar App
   [5] Abrir App com Tor
   [6] Parar Tor
+  [7] Auto-Rotate (torsocks mode)
   [0] Sair
-
-  ========================
 ```
 
-### Primeiro uso: adicionar um aplicativo
+### Primeiro uso
 
-**1. Menu > opção 4 — Adicionar App**
+Opção **4 — Adicionar App**. Abre um seletor de arquivo. Escolha o .exe que quer rotear pelo Tor. O programa:
+- Salva o app na lista (`apps.txt`)
+- Inicia o Tor (se não estiver rodando)
+- Abre o app via proxychains
 
-Uma janela do Windows vai abrir para você selecionar um arquivo `.exe`. Escolha o programa que você quer rotear pelo Tor (navegador, cliente de chat, qualquer coisa).
+Repetir pra cada app que quiser adicionar.
 
-Assim que selecionar, o programa:
-- Salva o app numa lista (arquivo `apps.txt` na pasta do Torify)
-- Inicia o Tor (se ainda não tiver rodando)
-- Abre o app via proxychains — o tráfego dele vai passar pelo Tor
+### Abrir app salvo
 
-O terminal do menu continua aberto. Você pode adicionar quantos apps quiser.
-
-### Abrir um app salvo
-
-**2. Menu > opção 5 — Abrir App com Tor**
-
-O menu mostra todos os apps que você já adicionou:
-
-```
-  Apps salvos:
-
-  [1] Firefox
-      C:\Program Files\Mozilla Firefox\firefox.exe
-  [2] Discord
-      C:\Users\você\AppData\Local\Discord\Discord.exe
-  [3] opencode
-      C:\Users\você\AppData\Roaming\npm\node_modules\opencode-ai\bin\opencode.exe
-
-  [0] Voltar
-
-  Escolha:
-```
-
-Digite o número do app. O Torproxy:
+Opção **5 — Abrir App com Tor**. Lista os apps salvos. Escolhe um, o Torify:
 1. Rotaciona o IP (SIGNAL NEWNYM)
-2. Abre o app em janela separada com o tráfego passando pelo Tor
+2. Abre o app via proxychains
 
-### Verificar se o proxy está funcionando
+### Verificar IP
 
-**3. Menu > opção 2 — Conferir IP**
+Opção **2 — Conferir IP**. Mostra o IP real (sem proxy) e o IP do Tor lado a lado. Se forem diferentes, o proxy está funcionando.
 
-Mostra seu IP real (sem proxy) e o IP do Tor lado a lado. Se forem diferentes, está roteando corretamente.
+Opção **1 — Iniciar Tor**. Sobe o Tor, rotaciona IP, e mostra a comparação.
 
-```
-  IP real: 201.95.xx.xx
-  IP Tor:  185.220.xxx.xxx
+### Auto-Rotate
 
-  [+] IPs DIFERENTES — Tor funcionando!
-```
+Opção **7 — Auto-Rotate**. Pergunta um intervalo em segundos. Abre o app configurado via Tor e fica num loop:
+- Rotaciona IP (NEWNYM)
+- Verifica se o IP mudou
+- Espera N segundos
+- Repete
+
+Aperta **Q** pra parar.
 
 ---
 
-## Estrutura de arquivos
+## Segurança — v1.3
+
+### strict_chain
+
+A configuração do proxychains agora usa `strict_chain` ao invés de `dynamic_chain`.
+
+| Modo | Comportamento | Risco |
+|------|--------------|-------|
+| `dynamic_chain` | Tenta conectar pelo proxy. Se falhar, cai em conexão direta | **Vazamento de IP** se o Tor cair |
+| `strict_chain` | Toda conexão passa pelo proxy. Se falhar, a conexão falha | Zero vazamento |
+
+Com `strict_chain`, se o Tor cair ou o proxy ficar indisponível, o app simplesmente perde conexão — não cai em rota direta.
+
+### Verificação de IP via SOCKS5 puro
+
+A verificação de IP do Tor agora é feita com conexão SOCKS5 direta em C#, sem depender de `curl.exe`. Se o SOCKS5 falhar, retorna "falhou" — **nunca** faz fallback pra conexão direta (como acontecia na v1.2).
+
+### proxy_dns
+
+DNS também passa pelo proxy Tor. Sem DNS leak.
+
+### Anti-vazamento geral
+
+- `proxy_dns` ativado no proxychains.conf
+- `strict_chain` evita fallback não-proxificado
+- Verificação de IP sempre passa pelo Tor (SOCKS5 direto)
+- Removido o fallback via WebClient sem proxy que existia na v1.2
+
+---
+
+## Estrutura
 
 ```
-Torify-Windows/                  # repositório (código fonte)
+Torify-Windows/                  # repositório
 ├── src/torify.cs                # código fonte (C#)
-├── setup.ps1                    # pré-baixa dependências
-├── build.ps1                    # compila o .exe manualmente
-├── .gitignore
+├── setup.ps1                    # setup + compilação
+├── build.ps1                    # compilação manual
 ├── README.md
 └── torify.ico
 
 %LOCALAPPDATA%/Torify/           # runtime (criado automaticamente)
-├── torify.exe                   # menu compilado
-├── apps.txt                     # lista de apps que você adicionou
-├── target-app.txt               # caminho do app padrão (opção 3)
-├── .setup-complete              # marcador de setup concluído
+├── torify.exe
+├── apps.txt                     # lista de apps adicionados
+├── target-app.txt               # app configurado (opção 3)
+├── .setup-complete              # marcador de setup
 │
 ├── tor/                         # Tor Expert Bundle
 │   ├── tor.exe
@@ -142,19 +144,15 @@ Torify-Windows/                  # repositório (código fonte)
     └── proxychains.conf
 ```
 
-O .exe é portátil — você pode mover ele para qualquer lugar. As dependências ficam isoladas em `%LOCALAPPDATA%\Torify\`.
-
 ---
 
-## Recompilar manualmente
-
-Se quiser modificar o código e recompilar:
+## Compilar manualmente
 
 ```powershell
 .\build.ps1
 ```
 
-Ou direto com o compilador C#:
+Ou direto:
 
 ```powershell
 & "$env:windir\Microsoft.NET\Framework\v4.0.30319\csc.exe" `
@@ -166,23 +164,17 @@ Ou direto com o compilador C#:
 
 ---
 
+## Dependências
+
+- [Tor Expert Bundle](https://www.torproject.org/)
+- [proxychains-windows](https://github.com/shunf4/proxychains-windows) (shunf4)
+
+---
+
 ## Linux
 
-Tem uma versão para Linux também! Python puro, mesmo conceito:
+Versão Linux (mesmo conceito, Python):
 
 ```
 https://github.com/emanueldssss/Torify-Linux
 ```
-
-```bash
-git clone https://github.com/emanueldssss/Torify-Linux.git
-cd Torify-Linux
-chmod +x torify.py
-./torify.py
-```
-
----
-
-## Sobre
-
-Ferramenta gratuita e open-source. Usa o [Tor Expert Bundle](https://www.torproject.org/) da comunidade Tor Project e o [proxychains-windows](https://github.com/shunf4/proxychains-windows) mantido por shunf4.
