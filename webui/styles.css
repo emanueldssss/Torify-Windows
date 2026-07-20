@@ -45,6 +45,8 @@ body{
 .dot{width:9px;height:9px;border-radius:50%;background:var(--text);display:inline-block;transition:.3s}
 .dot.small{width:7px;height:7px;background:var(--muted);transition:.3s}
 .title{font-family:var(--disp);font-weight:800;font-size:16px;letter-spacing:1px;text-transform:lowercase}
+.script{font-family:'Pinyon Script',cursive;font-weight:400;font-size:1.45em;
+  letter-spacing:0;vertical-align:-2px;color:var(--text);text-transform:none}
 .version{color:var(--muted);font-family:var(--mono);font-size:12px}
 .byline{color:var(--muted);font-size:11px;font-family:var(--mono);margin-left:4px}
 .byline b{color:var(--text)}
@@ -113,6 +115,7 @@ body{
 .log{font-family:var(--mono);font-size:11px;color:var(--muted);
   border:1px solid var(--border2);border-radius:8px;padding:10px 12px;
   max-height:120px;overflow-y:auto;line-height:1.7;white-space:pre-wrap}
+.log:empty{display:none;border:none;padding:0;margin:0}
 .log .ok{color:var(--text)} .log .err{color:var(--text);text-decoration:underline wavy}
 
 /* fields */
