@@ -105,10 +105,27 @@
 
         <div class="section-label" style="margin-top:22px">proxy para outros apps (burlar rate-limit)</div>
         <div class="about-card">
-          <p class="about-line">proxy http local: <b id="proxyAddr">127.0.0.1:8080</b></p>
-          <p class="about-line small">todo o trafego que passar por ele sai pelo tor (ip diferente do seu). use em CLIs como o opencode:</p>
+          <p class="about-line">proxy http local: <b id="proxyAddr">127.0.0.1:8080</b> — todo o trafego que passar por ele sai pelo tor (ip diferente do seu).</p>
+          <p class="section-label" style="margin-top:14px">cmd</p>
           <div class="cmd" id="proxyCmd">HTTPS_PROXY=http://127.0.0.1:8080</div>
-          <p class="about-line small">powershell: <b id="proxyCmdPs">$env:HTTPS_PROXY="http://127.0.0.1:8080"</b> — rode o CLI depois de ligar o tor.</p>
+          <p class="section-label" style="margin-top:14px">powershell</p>
+          <div class="cmd" id="proxyCmdPs">$env:HTTPS_PROXY="http://127.0.0.1:8080"</div>
+
+          <p class="section-label" style="margin-top:18px">abrir terminal ja com o proxy</p>
+          <div class="term-row">
+            <button class="term-btn" data-app="cmd"><span class="term-ico">▦</span> CMD</button>
+            <button class="term-btn" data-app="pwsh"><span class="term-ico">◈</span> PowerShell</button>
+          </div>
+          <div class="term-row" style="margin-top:10px">
+            <button class="term-btn wt" data-app="wt"><span class="term-ico">▣</span> Windows Terminal</button>
+            <button class="term-btn ghost" data-app="installwt"><span class="term-ico">⬇</span> Instalar WT</button>
+          </div>
+          <p class="about-line small" style="margin-top:14px;line-height:1.7">
+            <b>por que Windows Terminal?</b> o CMD e o PowerShell soltos são ferramentas antigas e limitadas.
+            o <b>Windows Terminal</b> unifica PowerShell, CMD e WSL numa só aba com abas, divisões de tela,
+            temas, transparência, performance muito superior e emojis/UTF-8 nativos. é mais bonito, mais
+            completo e mais robusto — e abre o PowerShell como padrão. instale-o e use o botão acima.
+          </p>
         </div>
       </div>
 

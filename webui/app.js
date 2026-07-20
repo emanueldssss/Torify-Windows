@@ -204,6 +204,19 @@ function updateProxyCmd(){
 // atualiza o comando em tempo real ao mudar a porta
 $("#httpInput").addEventListener("input", updateProxyCmd);
 
+// abrir terminal ja com o proxy
+$$(".term-btn").forEach(b=>{
+  b.addEventListener("click", async ()=>{
+    let app = b.dataset.app;
+    b.disabled = true; b.style.opacity = ".6";
+    await api("/launch", {method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({app:app})});
+    setTimeout(()=>{ b.disabled = false; b.style.opacity = "1"; }, 1500);
+    if(app === "installwt") toast("abrindo instalacao do Windows Terminal…");
+    else toast("terminal aberto com proxy Torify.Route");
+  });
+});
+
 /* ---------- theme ---------- */
 $("#themeBtn").addEventListener("click", ()=>{
   const cur = document.documentElement.dataset.theme;

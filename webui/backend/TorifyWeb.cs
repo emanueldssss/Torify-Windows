@@ -408,6 +408,52 @@ class Server
         catch (Exception ex) { Z_Log("proxy req err: " + ex.Message); }
         finally { try { client.Close(); } catch { } }
     }
+
+    /* ---- abre o terminal escolhido JA com o proxy aplicado ---- */
+    static void Q_Launch(string app)
+    {
+        string proxy = "http://127.0.0.1:" + httpPort;
+        try
+        {
+            if (app == "cmd")
+            {
+                var psi = new ProcessStartInfo("cmd.exe",
+                    "/k \"set HTTPS_PROXY=" + proxy + " && echo [Torify.Route] proxy aplicado: " + proxy + " && echo Pronto para iniciar sua aplicacao (CLI ou outra). && \"");
+                psi.UseShellExecute = true;
+                Process.Start(psi);
+            }
+            else if (app == "pwsh" || app == "powershell")
+            {
+                string inner = "$env:HTTPS_PROXY='" + proxy + "'; Write-Host '[Torify.Route] proxy aplicado: " + proxy + "'; Write-Host 'Pronto para iniciar sua aplicacao.'";
+                var psi = new ProcessStartInfo("powershell.exe", "-NoExit -Command \"" + inner + "\"");
+                psi.UseShellExecute = true;
+                Process.Start(psi);
+            }
+            else if (app == "wt")
+            {
+                string inner = "$env:HTTPS_PROXY='" + proxy + "'; Write-Host '[Torify.Route] proxy aplicado: " + proxy + "'";
+                var psi = new ProcessStartInfo("wt.exe", "new-tab powershell -NoExit -Command \"" + inner + "\"");
+                psi.UseShellExecute = true;
+                Process.Start(psi);
+            }
+            else if (app == "installwt")
+            {
+                // tenta winget; se nao existir, abre a Microsoft Store
+                try
+                {
+                    var w = new ProcessStartInfo("winget.exe",
+                        "install --id Microsoft.WindowsTerminal -e --accept-package-agreements --accept-source-agreements");
+                    w.UseShellExecute = true; w.WindowStyle = ProcessWindowStyle.Normal;
+                    Process.Start(w);
+                }
+                catch
+                {
+                    Process.Start(new ProcessStartInfo { FileName = "ms-windows-store://pdp/?productid=9n0dx20hk701", UseShellExecute = true });
+                }
+            }
+        }
+        catch (Exception ex) { Z_Log("launch err: " + ex.Message); }
+    }
     static bool Q_SocksUp()
     {
         try { var c = new System.Net.Sockets.TcpClient(); c.Connect("127.0.0.1", socksPort); c.Close(); return true; }
@@ -570,6 +616,17 @@ class Server
         if (path == "/proxy")
         {
             Z_Json(ctx, "{\"ok\":true,\"port\":" + httpPort + ",\"tor\":\"" + (torOk ? "up" : "down") + "\"}"); return;
+        }
+        if (path == "/launch" && method == "POST")
+        {
+            string app = "";
+            using (var sr = new StreamReader(ctx.Request.InputStream, ctx.Request.ContentEncoding))
+            {
+                var d = NewtonsoftOrParse(sr.ReadToEnd());
+                if (d.ContainsKey("app")) app = d["app"];
+            }
+            Q_Launch(app);
+            Z_Json(ctx, "{\"ok\":true}"); return;
         }
         ctx.Response.StatusCode = 404; ctx.Response.Close();
         }
