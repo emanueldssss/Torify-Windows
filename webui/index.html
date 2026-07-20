@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>torify — route through tor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="grain"></div>
+<div class="glow"></div>
+
+<main class="shell">
+  <!-- titlebar -->
+  <header class="titlebar">
+    <div class="tb-left">
+      <span class="dot"></span>
+      <span class="brand">torify</span>
+      <span class="ver">v1.6</span>
+    </div>
+    <div class="tb-right">
+      <span class="status" id="status">
+        <span class="status-dot"></span>
+        <span class="status-label">offline</span>
+      </span>
+      <button class="theme-toggle" id="themeToggle" title="toggle theme" aria-label="toggle theme">
+        <svg viewBox="0 0 24 24" width="16" height="16"><path d="M12 3a9 9 0 109 9 9 9 0 00-9-9zm0 2v14a7 7 0 010-14z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="body">
+    <!-- sidebar -->
+    <nav class="sidebar">
+      <button class="nav-item active" data-view="start">
+        <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        <span>start tor</span>
+      </button>
+      <button class="nav-item" data-view="check">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4v16M4 12h16" fill="none"/></svg>
+        <span>check ip</span>
+      </button>
+      <button class="nav-item" data-view="config">
+        <svg viewBox="0 0 24 24"><path d="M12 8a4 4 0 100 8 4 4 0 000-8zm9 4l-2 1 1 3-2 1-1-2-2 1-1 2H10l-1-2-2-1-1 2-2-1 1-3-2-1 2-2 1 2 1 2-2 1 2 2h4l1-2 2-1 1 2 2-1z" fill="none"/></svg>
+        <span>configure</span>
+      </button>
+      <button class="nav-item" data-view="apps">
+        <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" fill="none"/></svg>
+        <span>apps</span>
+      </button>
+      <button class="nav-item" data-view="rotate">
+        <svg viewBox="0 0 24 24"><path d="M12 5a7 7 0 11-6.7 9.3M5 12V7H2" fill="none"/></svg>
+        <span>auto-rotate</span>
+      </button>
+      <button class="nav-item" data-view="stop">
+        <svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
+        <span>stop tor</span>
+      </button>
+    </nav>
+
+    <!-- content -->
+    <section class="content">
+      <!-- START -->
+      <div class="view" data-view="start">
+        <h1 class="view-title">start tor</h1>
+        <p class="view-sub">boot the tor daemon, rotate the exit, and verify the route.</p>
+        <button class="btn btn-accent" id="startBtn">start tor</button>
+        <p class="hint" id="startHint">idle. tor is not running.</p>
+      </div>
+
+      <!-- CHECK -->
+      <div class="view" data-view="check">
+        <h1 class="view-title">ip comparison</h1>
+        <p class="view-sub">real egress vs tor egress — side by side.</p>
+        <div class="ip-grid">
+          <div class="ip-card" id="realCard">
+            <span class="ip-label">real ip</span>
+            <span class="ip-value" id="realIp">—</span>
+          </div>
+          <div class="ip-card ip-card--hi" id="torCard">
+            <span class="ip-label">tor ip</span>
+            <span class="ip-value" id="torIp">—</span>
+          </div>
+        </div>
+        <button class="btn" id="refreshBtn">refresh</button>
+      </div>
+
+      <!-- CONFIG -->
+      <div class="view" data-view="config">
+        <h1 class="view-title">configure</h1>
+        <p class="view-sub">point torify at the executable you want to route.</p>
+        <input class="field" id="pathField" placeholder="C:\path\to\target.exe" />
+        <div class="row">
+          <button class="btn btn-accent" id="saveBtn">save</button>
+          <button class="btn" id="autoBtn">auto-detect</button>
+        </div>
+        <p class="hint" id="configHint">no target configured.</p>
+      </div>
+
+      <!-- APPS -->
+      <div class="view" data-view="apps">
+        <h1 class="view-title">apps</h1>
+        <p class="view-sub">saved routes. open any through the tor chain.</p>
+        <ul class="app-list" id="appList"></ul>
+        <div class="row">
+          <button class="btn" id="addBtn">add</button>
+          <button class="btn btn-accent" id="openBtn">open via tor</button>
+        </div>
+      </div>
+
+      <!-- ROTATE -->
+      <div class="view" data-view="rotate">
+        <h1 class="view-title">auto-rotate</h1>
+        <p class="view-sub">periodically refresh the tor circuit on a timer.</p>
+        <div class="rotate-row">
+          <div>
+            <span class="rotate-title">auto-rotate</span>
+            <span class="rotate-sub" id="rotateSub">next in — · interval 60s</span>
+          </div>
+          <button class="toggle" id="rotateToggle" role="switch" aria-checked="false">
+            <span class="toggle-knob"></span>
+          </button>
+        </div>
+        <p class="hint" id="rotateHint">off.</p>
+      </div>
+
+      <!-- STOP -->
+      <div class="view" data-view="stop">
+        <h1 class="view-title">stop tor</h1>
+        <p class="view-sub">kill the tor daemon and close the route.</p>
+        <button class="btn" id="stopBtn">stop tor</button>
+        <p class="hint" id="stopHint">tor is not running.</p>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
