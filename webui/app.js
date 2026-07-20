@@ -206,6 +206,19 @@ $("#startBtn").addEventListener("click", startTor);
 $("#checkBtn").addEventListener("click", ()=>checkIp(false));
 $("#checkBtn2") && $("#checkBtn2").addEventListener("click", ()=>checkIp(false));
 
+/* ---------- sair : mata tudo (tor + servidor + pagina) ---------- */
+async function doExit(){
+  try { await fetch(API+"/exit", {method:"POST"}); } catch(e){}
+  // tenta fechar a aba/janela do browser
+  setTimeout(()=>{ window.open("", "_self"); window.close();
+    // fallback: some o conteudo
+    document.body.style.opacity = "0";
+    document.body.innerHTML = "<div style='color:#fff;font-family:monospace;padding:40px'>torify encerrado. voce voltou ao seu ip normal.</div>";
+  }, 400);
+}
+$("#exitBtn") && $("#exitBtn").addEventListener("click", doExit);
+$("#exitBtn2") && $("#exitBtn2").addEventListener("click", doExit);
+
 /* ---------- boot ---------- */
 (async ()=>{
   await loadConfig();
