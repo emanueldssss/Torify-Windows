@@ -32,7 +32,7 @@ namespace Torify
         float phase = 0;
         public DotControl()
         {
-            SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.DoubleBuffer, true);
+            SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint, true);
             Width = 12; Height = 12;
             var t = new System.Windows.Forms.Timer(); t.Interval = 40;
             t.Tick += (s, e) => { phase += 0.12f; if (phase > 6.28f) phase = 0; Invalidate(); };
@@ -58,7 +58,7 @@ namespace Torify
         public event EventHandler Toggled;
         public ToggleControl()
         {
-            SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.DoubleBuffer, true);
+            SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint, true);
             Width = 38; Height = 22; pos.Value = 0; pos.Target = 0;
             var t = new System.Windows.Forms.Timer(); t.Interval = 16;
             t.Tick += (s, e) => { pos.Step(); if (!pos.Done) Invalidate(); };
@@ -106,7 +106,7 @@ namespace Torify
         public NavItem(string icon, string label)
         {
             Icon = icon; Label = label;
-            SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.DoubleBuffer, true);
+            SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint, true);
             Height = 44;
             this.MouseEnter += (s, e) => { hover = true; Invalidate(); };
             this.MouseLeave += (s, e) => { hover = false; Invalidate(); };
@@ -134,7 +134,7 @@ namespace Torify
         public bool Hi = false;
         public Card()
         {
-            SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.DoubleBuffer, true);
+            SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint, true);
             fade.Value = 0; fade.Target = 1; fade.Speed = 0.10f;
             var t = new System.Windows.Forms.Timer(); t.Interval = 16;
             t.Tick += (s, e) => { fade.Step(); if (!fade.Done) Invalidate(); else t.Stop(); };
@@ -216,8 +216,13 @@ namespace Torify
             this.StartPosition = FormStartPosition.CenterScreen;
             this.Load += (s, e) =>
             {
-                try { this.Region = Region.FromHrgn(CreateRoundRectRgn(0, 0, Width, Height, 12, 12)); } catch { }
                 new Thread(SetupThread).Start();
+            };
+            this.Paint += (s, e) =>
+            {
+                using (var g = e.Graphics)
+                using (var pen = new Pen(Theme.Border, 1))
+                    g.DrawRectangle(pen, 0, 0, Width - 1, Height - 1);
             };
             BuildUi();
             clock = new System.Windows.Forms.Timer(); clock.Interval = 1500; clock.Tick += (s, e) => RefreshStatus(); clock.Start();
@@ -684,3 +689,4 @@ namespace Torify
         }
     }
 }
+
