@@ -193,6 +193,8 @@ async function loadConfig(){
   if(j.interval) $("#intervalInput").value = j.interval;
   if(j.socks) $("#socksInput").value = j.socks;
   if(j.http) $("#httpInput").value = j.http;
+  let p = await api("/proxy"); let pj = await p.json().catch(()=>({}));
+  if(pj.port) $("#proxyAddr").textContent = "127.0.0.1:" + pj.port;
 }
 
 /* ---------- theme ---------- */

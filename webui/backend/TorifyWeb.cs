@@ -42,6 +42,7 @@ class Server
     static System.Threading.Timer rotTimer = null;
     static HttpListener listener;
     static NotifyIcon tray;
+    static TcpListener proxyL;
 
     [STAThread]
     static void Main(string[] args)
@@ -82,6 +83,15 @@ class Server
         Z_Log("torify v1.5 by emanueldssss — ouvindo em http://localhost:8899/");
         Application.ApplicationExit += (s, e) => { try { Q_StopTor(); } catch { } };
         new Thread(Loop).Start();
+        // proxy HTTP local -> Tor (para outros apps/CLIs usarem via HTTPS_PROXY)
+        try
+        {
+            proxyL = new TcpListener(IPAddress.Loopback, httpPort);
+            proxyL.Start();
+            new Thread(ProxyLoop).Start();
+            Z_Log("proxy http na porta " + httpPort + " (rotela pro tor)");
+        }
+        catch (Exception ex) { Z_Log("proxy err: " + ex.Message); }
         AbrirBrowser();
         Application.Run();
     }
@@ -309,6 +319,95 @@ class Server
         }
         catch (Exception ex) { Z_Log("SocksHttpsGet err: " + ex.Message); return null; }
     }
+
+    /* ---- proxy HTTP -> Tor (para CLIs/Apps usarem via HTTPS_PROXY) ---- */
+    static void ProxyLoop()
+    {
+        while (true)
+        {
+            try
+            {
+                var client = proxyL.AcceptTcpClient();
+                new Thread(() => HandleProxy(client)).Start();
+            }
+            catch { Thread.Sleep(200); }
+        }
+    }
+    // abre stream conectado ao host ALVO ATRAVES do Tor (SOCKS5 remote DNS)
+    static NetworkStream SocksConnect(string host, int port)
+    {
+        var c = new TcpClient("127.0.0.1", socksPort);
+        var ns = c.GetStream();
+        ns.Write(new byte[] { 5, 1, 0 }, 0, 3);
+        var b = new byte[2]; int rn = ns.Read(b, 0, 2);
+        if (rn < 2 || b[0] != 5) throw new Exception("socks handshake");
+        var hb = Encoding.ASCII.GetBytes(host);
+        var req = new List<byte> { 5, 1, 0, 3, (byte)hb.Length };
+        req.AddRange(hb);
+        req.Add((byte)(port >> 8)); req.Add((byte)(port & 0xff));
+        ns.Write(req.ToArray(), 0, req.Count);
+        var rep = new byte[10]; ns.Read(rep, 0, rep.Length);
+        if (rep[1] != 0) throw new Exception("socks connect rep=" + rep[1]);
+        return ns;
+    }
+    static void CopyPipe(Stream from, Stream to)
+    {
+        var buf = new byte[8192];
+        try { while (true) { int n = from.Read(buf, 0, buf.Length); if (n <= 0) break; to.Write(buf, 0, n); to.Flush(); } }
+        catch { }
+    }
+    static void HandleProxy(TcpClient client)
+    {
+        try
+        {
+            client.ReceiveTimeout = 20000; client.SendTimeout = 20000;
+            var ns = client.GetStream();
+            var r = new StreamReader(ns);
+            var first = r.ReadLine();
+            if (string.IsNullOrEmpty(first)) return;
+            var parts = first.Split(' ');
+            string method = parts[0];
+            string target = parts[1];
+            // consome headers
+            while (true) { var hl = r.ReadLine(); if (hl == null || hl == "") break; }
+
+            if (method == "CONNECT")
+            {
+                // HTTPS tunnel: host:port
+                var hp = target.Split(':');
+                string host = hp[0];
+                int port = hp.Length > 1 ? int.Parse(hp[1]) : 443;
+                var tor = SocksConnect(host, port);
+                var ob = Encoding.ASCII.GetBytes("HTTP/1.1 200 Connection Established\r\n\r\n");
+                ns.Write(ob, 0, ob.Length);
+                var t1 = new Thread(() => CopyPipe(ns, tor));
+                var t2 = new Thread(() => CopyPipe(tor, ns));
+                t1.Start(); t2.Start(); t1.Join(); t2.Join();
+            }
+            else
+            {
+                // HTTP simples (GET/POST com URL absoluta): repassa header + body ao Tor
+                var uri = new Uri(target);
+                string host = uri.Host; int port = uri.Port;
+                var tor = SocksConnect(host, port);
+                // remonta o request: 1a linha + headers ja lidos + linha em branco
+                var headSb = new StringBuilder();
+                headSb.Append(first).Append("\r\n");
+                string hl;
+                while ((hl = r.ReadLine()) != null && hl != "")
+                    headSb.Append(hl).Append("\r\n");
+                headSb.Append("\r\n");
+                var wb = Encoding.ASCII.GetBytes(headSb.ToString());
+                tor.Write(wb, 0, wb.Length);
+                // ponteia resposta e qualquer body restante
+                var t1 = new Thread(() => CopyPipe(tor, ns));
+                var t2 = new Thread(() => CopyPipe(ns, tor));
+                t1.Start(); t2.Start(); t1.Join(); t2.Join();
+            }
+        }
+        catch (Exception ex) { Z_Log("proxy req err: " + ex.Message); }
+        finally { try { client.Close(); } catch { } }
+    }
     static bool Q_SocksUp()
     {
         try { var c = new System.Net.Sockets.TcpClient(); c.Connect("127.0.0.1", socksPort); c.Close(); return true; }
@@ -467,6 +566,10 @@ class Server
         if (path == "/about")
         {
             Z_Json(ctx, "{\"ok\":true,\"author\":\"Emanuel Domingues\",\"nick\":\"eds / emanueldssss\",\"version\":\"1.5\"}"); return;
+        }
+        if (path == "/proxy")
+        {
+            Z_Json(ctx, "{\"ok\":true,\"port\":" + httpPort + ",\"tor\":\"" + (torOk ? "up" : "down") + "\"}"); return;
         }
         ctx.Response.StatusCode = 404; ctx.Response.Close();
         }

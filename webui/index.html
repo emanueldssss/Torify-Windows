@@ -102,6 +102,14 @@
         </div>
         <button class="btn primary" id="saveConfig">⚙ salvar</button>
         <div class="log" id="logConfig"></div>
+
+        <div class="section-label" style="margin-top:22px">proxy para outros apps (burlar rate-limit)</div>
+        <div class="about-card">
+          <p class="about-line">proxy http local: <b id="proxyAddr">127.0.0.1:8080</b></p>
+          <p class="about-line small">todo o trafego que passar por ele sai pelo tor (ip diferente do seu). use em CLIs como o opencode:</p>
+          <div class="app-state" style="margin:8px 0;display:inline-block">HTTPS_PROXY=http://127.0.0.1:8080</div>
+          <p class="about-line small">ou no powershell: <b>$env:HTTPS_PROXY="http://127.0.0.1:8080"</b> — rode o CLI depois de ligar o tor.</p>
+        </div>
       </div>
 
       <!-- APPS -->
