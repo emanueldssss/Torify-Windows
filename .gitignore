@@ -1,20 +1,6 @@
-# Binaries / compiled output
-torify.exe
-*.zip
-*.7z
-
-# Tor bundle — large binaries, download via setup.ps1
-/tor/
-/proxychains/
-
-# User config (target app path override)
-target-app.txt
-
-# Windows junk
+﻿*.user
+bin/
+obj/
 Thumbs.db
-desktop.ini
+DHCP
 
-# IDE
-.vs/
-*.user
-*.suo

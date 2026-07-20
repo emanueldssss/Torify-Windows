@@ -1,159 +1,214 @@
-/* ════════════════════════════════════════════════
-   TORIFY WEB UI — client
-   talks to local backend at http://localhost:8899
-   ════════════════════════════════════════════════ */
-const API = "http://localhost:8899";
-
+/* torify v1.5 — frontend client. autor: emanueldssss */
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => document.querySelectorAll(s);
+const API = "http://localhost:8899";
 
-async function api(path, opts) {
-  try {
-    const r = await fetch(API + path, opts);
-    if (!r.ok) throw new Error("http " + r.status);
-    return await r.json();
-  } catch (e) {
-    return { ok: false, error: e.message };
-  }
+/* ---------- toast ---------- */
+let toastT;
+function toast(msg){
+  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastT); toastT = setTimeout(()=>t.classList.remove("show"), 2600);
+}
+function logEl(el, line, cls){
+  const d = document.createElement("div");
+  if(cls) d.className = cls; d.textContent = line;
+  el.appendChild(d); el.scrollTop = el.scrollHeight;
 }
 
-/* ── theme ── */
-const root = document.documentElement;
-$("#themeToggle").addEventListener("click", () => {
-  root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark";
-});
+/* ---------- typewriter ---------- */
+function typewrite(el, txt, speed){
+  speed = speed || 22; el.textContent = ""; let i = 0;
+  const id = setInterval(()=>{
+    el.textContent = txt.slice(0, ++i);
+    if(i >= txt.length) clearInterval(id);
+  }, speed);
+}
 
-/* ── nav ── */
-$$(".nav-item").forEach((b) => {
-  b.addEventListener("click", () => {
-    $$(".nav-item").forEach((n) => n.classList.remove("active"));
-    b.classList.add("active");
+/* ---------- particles ---------- */
+const cv = $("#particles"); const ctx = cv.getContext("2d");
+let parts = [];
+function resizeCv(){
+  cv.width = innerWidth; cv.height = innerHeight;
+  parts = Array.from({length: Math.min(60, (innerWidth*innerHeight)/26000|0)}, ()=>({
+    x: Math.random()*cv.width, y: Math.random()*cv.height,
+    vx: (Math.random()-.5)*.3, vy: (Math.random()-.5)*.3,
+    r: Math.random()*1.6+.4
+  }));
+}
+addEventListener("resize", resizeCv); resizeCv();
+(function loop(){
+  ctx.clearRect(0,0,cv.width,cv.height);
+  const acc = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim();
+  parts.forEach(p=>{
+    p.x+=p.vx; p.y+=p.vy;
+    if(p.x<0||p.x>cv.width) p.vx*=-1;
+    if(p.y<0||p.y>cv.height) p.vy*=-1;
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,7); ctx.fillStyle = acc; ctx.globalAlpha=.5; ctx.fill();
+  });
+  ctx.globalAlpha=1; requestAnimationFrame(loop);
+})();
+
+/* ---------- status ---------- */
+function setStatus(online){
+  const s = $("#status");
+  s.classList.toggle("online", online);
+  $("#statusDot").style.background = online ? "var(--accent)" : "var(--text)";
+  $("#statusLabel").textContent = online ? "connected" : "offline";
+}
+
+/* ---------- nav ---------- */
+$$(".nav-item").forEach(b=>{
+  b.addEventListener("click", ()=>{
     const v = b.dataset.view;
-    $$(".view").forEach((vw) => vw.classList.remove("active"));
-    $(`.view[data-view="${v}"]`).classList.add("active");
+    if(v === "stop"){ stopTor(); return; }
+    $$(".nav-item").forEach(n=>n.classList.remove("active"));
+    b.classList.add("active");
+    $$(".view").forEach(vw=>vw.hidden = vw.dataset.view !== v);
+    if(v === "ip") checkIp(true);
+    if(v === "apps") loadApps();
+    if(v === "rotate") startRing();
   });
 });
 
-/* ── status ── */
-async function refreshStatus() {
-  const r = await api("/status");
-  const el = $("#status");
-  if (r.ok && r.online) {
-    el.classList.add("online");
-    $(".status-label").textContent = "connected";
+/* ---------- api calls ---------- */
+async function api(path, opts){
+  try{ return await fetch(API+path, opts); }
+  catch(e){ return {ok:false, json:async()=>({err:"backend offline"})} };
+}
+
+async function startTor(){
+  const btn = $("#startBtn"); btn.disabled = true;
+  logEl($("#logHome"), "> iniciando tor…");
+  let r = await api("/start", {method:"POST"});
+  let j = await r.json().catch(()=>({}));
+  if(j.ok){ logEl($("#logHome"), "✓ tor ativo", "ok"); setStatus(true); toast("tor online"); }
+  else { logEl($("#logHome"), "✗ "+(j.err||"falha"), "err"); toast("falha ao iniciar"); }
+  btn.disabled = false; await refreshStatus();
+}
+
+async function stopTor(){
+  let r = await api("/stop", {method:"POST"});
+  let j = await r.json().catch(()=>({}));
+  if(j.ok){ setStatus(false); toast("tor parado"); logEl($("#logHome"), "✗ tor parado", "err"); }
+  else toast("erro ao parar");
+  await refreshStatus();
+}
+
+async function checkIp(silent){
+  const ri = $("#realIp"), ti = $("#torIp");
+  if(!silent) toast("verificando ip…");
+  let r = await api("/ip"); let j = await r.json().catch(()=>({}));
+  if(j.ok){
+    typewrite(ri, j.real || "—");
+    typewrite(ti, j.tor || "—");
+    $("#realIp2") && typewrite($("#realIp2"), j.real||"—");
+    $("#torIp2") && typewrite($("#torIp2"), j.tor||"—");
+    const leaked = !j.tor || j.tor === "offline" || j.tor === j.real;
+    $("#shieldNote") && ($("#shieldNote").textContent = leaked
+      ? "⚠ atenção: tráfego pode não estar pelo tor" : "✓ roteado via tor — sem vazamento");
+    if(j.tor && j.tor !== "offline"){ setStatus(true); }
   } else {
-    el.classList.remove("online");
-    $(".status-label").textContent = "offline";
+    ri.textContent = ti.textContent = "offline";
+    $("#shieldNote") && ($("#shieldNote").textContent = "backend offline");
   }
 }
 
-/* ── start ── */
-$("#startBtn").addEventListener("click", async () => {
-  const btn = $("#startBtn");
-  btn.textContent = "starting…";
-  btn.disabled = true;
-  const r = await api("/start", { method: "POST" });
-  btn.disabled = false;
-  btn.textContent = "start tor";
-  $("#startHint").textContent = r.ok ? "tor booted. route is live." : "failed: " + (r.error || "unknown");
-  refreshStatus();
-  showCheck();
-});
-
-/* ── check ip ── */
-function setIp(elId, val) {
-  const el = $(elId);
-  el.textContent = val;
-  el.classList.remove("flash");
-  void el.offsetWidth;
-  el.classList.add("flash");
+async function refreshStatus(){
+  let r = await api("/status"); let j = await r.json().catch(()=>({}));
+  setStatus(!!(j && j.online));
 }
-async function showCheck() {
-  const r = await api("/ip");
-  if (r.ok) {
-    setIp("#realIp", r.real || "failed");
-    setIp("#torIp", r.tor || "offline");
-  }
+
+async function loadApps(){
+  const list = $("#appsList"); list.innerHTML = "";
+  let r = await api("/apps"); let j = await r.json().catch(()=>({apps:[]}));
+  (j.apps||[]).forEach(a=>{
+    const row = document.createElement("div"); row.className = "app-row";
+    row.innerHTML = `<div class="app-name"><span class="icon">▸</span>${a}</div>
+      <div style="display:flex;gap:8px;align-items:center">
+      <span class="app-state">idle</span>
+      <button class="app-del" data-app="${a}">✕</button></div>`;
+    list.appendChild(row);
+  });
+  $$(".app-del").forEach(b=>b.addEventListener("click", async ()=>{
+    await api("/apps?name="+encodeURIComponent(b.dataset.app), {method:"DELETE"});
+    loadApps();
+  }));
 }
-$("#refreshBtn").addEventListener("click", showCheck);
-
-/* ── config ── */
-$("#saveBtn").addEventListener("click", async () => {
-  const p = $("#pathField").value.trim();
-  const r = await api("/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: p }) });
-  $("#configHint").textContent = r.ok ? "saved: " + p : "not found or invalid";
-});
-$("#autoBtn").addEventListener("click", async () => {
-  const r = await api("/config/auto", { method: "POST" });
-  if (r.ok) { $("#pathField").value = r.path; $("#configHint").textContent = "detected: " + r.path; }
-  else $("#configHint").textContent = "nothing detected";
+$("#addApp") && $("#addApp").addEventListener("click", async ()=>{
+  const inp = $("#appInput"); const v = inp.value.trim(); if(!v) return;
+  await api("/apps", {method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({name:v})});
+  inp.value = ""; loadApps(); toast("app adicionado");
 });
 
-/* ── apps ── */
-async function refreshApps() {
-  const r = await api("/apps");
-  const list = $("#appList");
-  list.innerHTML = "";
-  if (!r.ok || !r.apps || r.apps.length === 0) {
-    list.innerHTML = '<li class="app-row empty">no apps saved</li>';
-    return;
-  }
-  r.apps.forEach((a, i) => {
-    const li = document.createElement("li");
-    li.className = "app-row" + (a.active ? " active" : "");
-    li.innerHTML = `<span>${a.name}</span><span class="state">${a.active ? "active" : "idle"}</span>`;
-    li.dataset.idx = i;
-    li.addEventListener("click", () => { $$(".app-row").forEach((x) => x.style.background = ""); li.style.background = "var(--glow)"; selectedApp = i; });
-    list.appendChild(li);
+/* ---------- rotate ring ---------- */
+let ringTimer, ringLeft;
+function startRing(){
+  clearInterval(ringTimer);
+  let r = api("/rotate/status");
+  r.then(x=>x.json()).then(j=>{
+    let interval = (j.interval)||60; let on = j.on;
+    ringLeft = interval;
+    drawRing(interval, ringLeft, on);
+    $("#rotateSub").textContent = on ? `próxima em ${ringLeft}s · intervalo ${interval}s`
+                                     : `pausado · intervalo ${interval}s`;
+    if(on) tickRing(interval);
   });
 }
-let selectedApp = -1;
-$("#addBtn").addEventListener("click", async () => {
-  const p = prompt("executable path to route via tor:");
-  if (!p) return;
-  const r = await api("/apps/add", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: p }) });
-  if (r.ok) { await api("/apps/open", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: p }) }); refreshApps(); }
-});
-$("#openBtn").addEventListener("click", async () => {
-  const r = await api("/apps");
-  if (!r.ok || !r.apps || r.apps.length === 0) return;
-  const idx = selectedApp >= 0 ? selectedApp : 0;
-  await api("/apps/open", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: r.apps[idx].path }) });
-  refreshApps();
+function drawRing(interval, left, on){
+  const C = 2*Math.PI*52;
+  const fg = $("#ringFg"); fg.style.strokeDasharray = C;
+  fg.style.strokeDashoffset = on ? C*(1 - left/interval) : C;
+  $("#ringNum").textContent = left;
+  $("#rotateToggle").classList.toggle("on", on);
+  $("#rotateToggle").setAttribute("aria-checked", on);
+}
+function tickRing(interval){
+  clearInterval(ringTimer);
+  ringTimer = setInterval(()=>{
+    ringLeft--; if(ringLeft<=0) ringLeft = interval;
+    drawRing(interval, ringLeft, true);
+    $("#rotateSub").textContent = `próxima em ${ringLeft}s · intervalo ${interval}s`;
+  }, 1000);
+}
+$("#rotateToggle") && $("#rotateToggle").addEventListener("click", async ()=>{
+  const on = !$("#rotateToggle").classList.contains("on");
+  await api("/rotate", {method: on?"POST":"DELETE"});
+  toast(on ? "rotação ativada" : "rotação pausada");
+  startRing();
 });
 
-/* ── rotate ── */
-let rotating = false;
-$("#rotateToggle").addEventListener("click", async () => {
-  rotating = !rotating;
-  $("#rotateToggle").classList.toggle("on", rotating);
-  $("#rotateToggle").setAttribute("aria-checked", rotating);
-  if (rotating) {
-    await api("/rotate/on", { method: "POST" });
-    rotateTick();
-  } else {
-    await api("/rotate/off", { method: "POST" });
-    $("#rotateSub").textContent = "next in — · interval 60s";
-    $("#rotateHint").textContent = "off.";
-  }
+/* ---------- config ---------- */
+$("#saveConfig") && $("#saveConfig").addEventListener("click", async ()=>{
+  const body = {interval:+$("#intervalInput").value, socks:+$("#socksInput").value,
+    http:+$("#httpInput").value};
+  let r = await api("/config", {method:"POST",
+    headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)});
+  let j = await r.json().catch(()=>({}));
+  logEl($("#logConfig"), j.ok?"✓ salvo":"✗ erro", j.ok?"ok":"err");
+  toast("configurado");
 });
-async function rotateTick() {
-  if (!rotating) return;
-  const r = await api("/rotate/status");
-  if (r.ok) $("#rotateSub").textContent = `next in ${r.countdown}s · interval ${r.interval}s`;
-  setTimeout(rotateTick, 1000);
+async function loadConfig(){
+  let r = await api("/config"); let j = await r.json().catch(()=>({}));
+  if(j.interval) $("#intervalInput").value = j.interval;
+  if(j.socks) $("#socksInput").value = j.socks;
+  if(j.http) $("#httpInput").value = j.http;
 }
 
-/* ── stop ── */
-$("#stopBtn").addEventListener("click", async () => {
-  const r = await api("/stop", { method: "POST" });
-  $("#stopHint").textContent = r.ok ? "tor stopped." : "nothing to stop.";
-  refreshStatus();
+/* ---------- theme ---------- */
+$("#themeBtn").addEventListener("click", ()=>{
+  const cur = document.documentElement.dataset.theme;
+  document.documentElement.dataset.theme = cur === "dark" ? "light" : "dark";
 });
 
-/* ── boot ── */
-refreshStatus();
-showCheck();
-refreshApps();
-setInterval(refreshStatus, 4000);
-setInterval(() => { if ($('.view[data-view="check"]').classList.contains("active")) showCheck(); }, 5000);
+/* ---------- bindings ---------- */
+$("#startBtn").addEventListener("click", startTor);
+$("#checkBtn").addEventListener("click", ()=>checkIp(false));
+$("#checkBtn2") && $("#checkBtn2").addEventListener("click", ()=>checkIp(false));
+
+/* ---------- boot ---------- */
+(async ()=>{
+  await loadConfig();
+  await refreshStatus();
+  await checkIp(true);
+})();

@@ -1,143 +1,156 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="pt-BR" data-theme="dark">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>torify — route through tor</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>torify — by Emanuel Domingues</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<div class="grain"></div>
-<div class="glow"></div>
+<div class="grain" aria-hidden="true"></div>
+<div class="grid-bg" aria-hidden="true"></div>
+<canvas id="particles" aria-hidden="true"></canvas>
 
-<main class="shell">
-  <!-- titlebar -->
+<main class="window" id="window">
   <header class="titlebar">
-    <div class="tb-left">
+    <div class="titlebar-left">
       <span class="dot"></span>
-      <span class="brand">torify</span>
-      <span class="ver">v1.6</span>
+      <span class="title">torify</span>
+      <span class="version">v1.5</span>
+      <span class="byline">by&nbsp;<b>emanueldssss</b></span>
     </div>
-    <div class="tb-right">
-      <span class="status" id="status">
-        <span class="status-dot"></span>
-        <span class="status-label">offline</span>
-      </span>
-      <button class="theme-toggle" id="themeToggle" title="toggle theme" aria-label="toggle theme">
-        <svg viewBox="0 0 24 24" width="16" height="16"><path d="M12 3a9 9 0 109 9 9 9 0 00-9-9zm0 2v14a7 7 0 010-14z"/></svg>
-      </button>
+    <div class="status" id="status">
+      <span class="dot small" id="statusDot"></span>
+      <span class="label" id="statusLabel">offline</span>
+      <button class="theme-btn" id="themeBtn" title="alternar tema" aria-label="alternar tema">◐</button>
     </div>
   </header>
 
   <div class="body">
-    <!-- sidebar -->
-    <nav class="sidebar">
-      <button class="nav-item active" data-view="start">
-        <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-        <span>start tor</span>
-      </button>
-      <button class="nav-item" data-view="check">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4v16M4 12h16" fill="none"/></svg>
-        <span>check ip</span>
-      </button>
-      <button class="nav-item" data-view="config">
-        <svg viewBox="0 0 24 24"><path d="M12 8a4 4 0 100 8 4 4 0 000-8zm9 4l-2 1 1 3-2 1-1-2-2 1-1 2H10l-1-2-2-1-1 2-2-1 1-3-2-1 2-2 1 2 1 2-2 1 2 2h4l1-2 2-1 1 2 2-1z" fill="none"/></svg>
-        <span>configure</span>
-      </button>
-      <button class="nav-item" data-view="apps">
-        <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" fill="none"/></svg>
-        <span>apps</span>
-      </button>
-      <button class="nav-item" data-view="rotate">
-        <svg viewBox="0 0 24 24"><path d="M12 5a7 7 0 11-6.7 9.3M5 12V7H2" fill="none"/></svg>
-        <span>auto-rotate</span>
-      </button>
-      <button class="nav-item" data-view="stop">
-        <svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
-        <span>stop tor</span>
-      </button>
+    <nav class="sidebar" id="sidebar">
+      <button class="nav-item active" data-view="home"><span class="icon">▶</span><span class="nav-text">start tor</span></button>
+      <button class="nav-item" data-view="ip"><span class="icon">◎</span><span class="nav-text">check ip</span></button>
+      <button class="nav-item" data-view="config"><span class="icon">⚙</span><span class="nav-text">configure</span></button>
+      <button class="nav-item" data-view="apps"><span class="icon">▤</span><span class="nav-text">apps</span></button>
+      <button class="nav-item" data-view="rotate"><span class="icon">↻</span><span class="nav-text">auto-rotate</span></button>
+      <button class="nav-item" data-view="about"><span class="icon">★</span><span class="nav-text">about</span></button>
+      <button class="nav-item stop" data-view="stop"><span class="icon">⏻</span><span class="nav-text">stop tor</span></button>
     </nav>
 
-    <!-- content -->
-    <section class="content">
-      <!-- START -->
-      <div class="view" data-view="start">
-        <h1 class="view-title">start tor</h1>
-        <p class="view-sub">boot the tor daemon, rotate the exit, and verify the route.</p>
-        <button class="btn btn-accent" id="startBtn">start tor</button>
-        <p class="hint" id="startHint">idle. tor is not running.</p>
-      </div>
+    <section class="content" id="content">
 
-      <!-- CHECK -->
-      <div class="view" data-view="check">
-        <h1 class="view-title">ip comparison</h1>
-        <p class="view-sub">real egress vs tor egress — side by side.</p>
+      <!-- HOME / START -->
+      <div class="view" data-view="home">
+        <div class="hero">
+          <h1 class="hero-title">torify</h1>
+          <p class="hero-sub">roteamento anônimo · tor + proxychains · feito por <b>emanueldssss</b></p>
+        </div>
         <div class="ip-grid">
-          <div class="ip-card" id="realCard">
-            <span class="ip-label">real ip</span>
-            <span class="ip-value" id="realIp">—</span>
+          <div class="ip-card">
+            <div class="ip-card-label">real ip</div>
+            <div class="ip-card-value" id="realIp">—</div>
           </div>
-          <div class="ip-card ip-card--hi" id="torCard">
-            <span class="ip-label">tor ip</span>
-            <span class="ip-value" id="torIp">—</span>
+          <div class="ip-card tor">
+            <div class="ip-card-label">tor ip</div>
+            <div class="ip-card-value" id="torIp">—</div>
           </div>
         </div>
-        <button class="btn" id="refreshBtn">refresh</button>
+        <div class="action-row">
+          <button class="btn primary" id="startBtn">▶ start tor</button>
+          <button class="btn ghost" id="checkBtn">◎ check ip</button>
+        </div>
+        <div class="log" id="logHome"></div>
+      </div>
+
+      <!-- IP -->
+      <div class="view" data-view="ip" hidden>
+        <div class="section-label">ip comparison</div>
+        <div class="ip-grid big">
+          <div class="ip-card">
+            <div class="ip-card-label">real ip</div>
+            <div class="ip-card-value type" id="realIp2">—</div>
+          </div>
+          <div class="ip-card tor">
+            <div class="ip-card-label">tor ip</div>
+            <div class="ip-card-value type" id="torIp2">—</div>
+          </div>
+        </div>
+        <button class="btn primary wide" id="checkBtn2">◎ refresh</button>
+        <div class="shield-note" id="shieldNote">verificando vazamentos…</div>
       </div>
 
       <!-- CONFIG -->
-      <div class="view" data-view="config">
-        <h1 class="view-title">configure</h1>
-        <p class="view-sub">point torify at the executable you want to route.</p>
-        <input class="field" id="pathField" placeholder="C:\path\to\target.exe" />
-        <div class="row">
-          <button class="btn btn-accent" id="saveBtn">save</button>
-          <button class="btn" id="autoBtn">auto-detect</button>
+      <div class="view" data-view="config" hidden>
+        <div class="section-label">configure</div>
+        <div class="field">
+          <label>intervalo de rotação (s)</label>
+          <input type="number" id="intervalInput" min="10" max="3600" value="60">
         </div>
-        <p class="hint" id="configHint">no target configured.</p>
+        <div class="field">
+          <label>porta socks (tor)</label>
+          <input type="number" id="socksInput" min="1" max="65535" value="9050">
+        </div>
+        <div class="field">
+          <label>porta http (proxy)</label>
+          <input type="number" id="httpInput" min="1" max="65535" value="8080">
+        </div>
+        <button class="btn primary" id="saveConfig">⚙ salvar</button>
+        <div class="log" id="logConfig"></div>
       </div>
 
       <!-- APPS -->
-      <div class="view" data-view="apps">
-        <h1 class="view-title">apps</h1>
-        <p class="view-sub">saved routes. open any through the tor chain.</p>
-        <ul class="app-list" id="appList"></ul>
-        <div class="row">
-          <button class="btn" id="addBtn">add</button>
-          <button class="btn btn-accent" id="openBtn">open via tor</button>
+      <div class="view" data-view="apps" hidden>
+        <div class="section-label">apps roteados</div>
+        <div class="apps-list" id="appsList"></div>
+        <div class="add-row">
+          <input type="text" id="appInput" placeholder="nome.exe">
+          <button class="btn primary" id="addApp">+ add</button>
         </div>
       </div>
 
       <!-- ROTATE -->
-      <div class="view" data-view="rotate">
-        <h1 class="view-title">auto-rotate</h1>
-        <p class="view-sub">periodically refresh the tor circuit on a timer.</p>
-        <div class="rotate-row">
-          <div>
-            <span class="rotate-title">auto-rotate</span>
-            <span class="rotate-sub" id="rotateSub">next in — · interval 60s</span>
+      <div class="view" data-view="rotate" hidden>
+        <div class="section-label">auto-rotate</div>
+        <div class="rotate-card">
+          <div class="ring-wrap">
+            <svg class="ring" viewBox="0 0 120 120">
+              <circle class="ring-bg" cx="60" cy="60" r="52"></circle>
+              <circle class="ring-fg" id="ringFg" cx="60" cy="60" r="52"></circle>
+            </svg>
+            <div class="ring-num" id="ringNum">60</div>
           </div>
-          <button class="toggle" id="rotateToggle" role="switch" aria-checked="false">
-            <span class="toggle-knob"></span>
-          </button>
+          <div class="rotate-info">
+            <div class="rotate-title">auto-rotate</div>
+            <div class="rotate-sub" id="rotateSub">próxima em 60s · intervalo 60s</div>
+            <button class="toggle" id="rotateToggle" role="switch" aria-checked="false">
+              <span class="toggle-dot"></span>
+            </button>
+          </div>
         </div>
-        <p class="hint" id="rotateHint">off.</p>
       </div>
 
-      <!-- STOP -->
-      <div class="view" data-view="stop">
-        <h1 class="view-title">stop tor</h1>
-        <p class="view-sub">kill the tor daemon and close the route.</p>
-        <button class="btn" id="stopBtn">stop tor</button>
-        <p class="hint" id="stopHint">tor is not running.</p>
+      <!-- ABOUT -->
+      <div class="view" data-view="about" hidden>
+        <div class="section-label">about</div>
+        <div class="about-card">
+          <h2>torify</h2>
+          <p class="about-line"><b>autor:</b> Emanuel Domingues</p>
+          <p class="about-line"><b>nick:</b> eds / emanueldssss</p>
+          <p class="about-line"><b>versão:</b> 1.5</p>
+          <p class="about-line"><b>licença:</b> código protegido — cópia não autorizada é roubo.</p>
+          <p class="about-line small">todos os direitos reservados. este projeto foi criado e é mantido por Emanuel Domingues. não remova estes créditos.</p>
+          <div class="sig">— eds</div>
+        </div>
       </div>
+
     </section>
   </div>
 </main>
 
+<div class="toast" id="toast"></div>
 <script src="app.js"></script>
 </body>
 </html>
