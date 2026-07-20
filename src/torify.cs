@@ -167,13 +167,29 @@ namespace Torify
                 tar.Start();
                 tar.WaitForExit();
 
-                string extracted = null;
-                foreach (string d in Directory.GetDirectories(BaseDir, "tor-expert-bundle-windows-*"))
+                // O tar do Tor Expert Bundle extrai direto para a pasta "tor/"
+                // (ex.: %LOCALAPPDATA%/Torify/tor/tor.exe). Se já existir, nada a mover.
+                // Caso contrário, procura qualquer diretório extraído que contenha tor.exe.
+                if (!File.Exists(TorExe))
                 {
-                    extracted = d; break;
+                    string extracted = null;
+                    if (Directory.Exists(TorDir))
+                    {
+                        extracted = TorDir;
+                    }
+                    else
+                    {
+                        foreach (string d in Directory.GetDirectories(BaseDir, "*", SearchOption.TopDirectoryOnly))
+                        {
+                            if (File.Exists(Path.Combine(d, "tor.exe")))
+                            {
+                                extracted = d; break;
+                            }
+                        }
+                    }
+                    if (extracted != null && !extracted.Equals(TorDir, StringComparison.OrdinalIgnoreCase))
+                        MoveDirectorySafe(extracted, TorDir);
                 }
-                if (extracted != null)
-                    MoveDirectorySafe(extracted, TorDir);
                 File.Delete(torFile);
 
                 Directory.CreateDirectory(Path.Combine(TorDir, "Data", "Tor"));
@@ -252,7 +268,7 @@ namespace Torify
                 if (files.Length > 0) return files[0];
             }
             catch { }
-            return x64;
+            return null;
         }
 
         static string FindTargetApp()
@@ -364,6 +380,18 @@ namespace Torify
         // Sem dependência de curl.exe, sem fallback pra conexão direta.
         // Se o Tor não estiver rodando ou o SOCKS5 falhar, retorna null.
         // ─────────────────────────────────────────────────────────────────
+        static int ReadExact(Stream ns, byte[] buffer, int offset, int count)
+        {
+            int total = 0;
+            while (total < count)
+            {
+                int r = ns.Read(buffer, offset + total, count - total);
+                if (r <= 0) break;
+                total += r;
+            }
+            return total;
+        }
+
         static string HttpGetViaSocks5(string host, int port, string path)
         {
             try
@@ -379,7 +407,7 @@ namespace Torify
                     byte[] handshake = { 5, 1, 0 };
                     ns.Write(handshake, 0, handshake.Length);
                     byte[] resp = new byte[2];
-                    if (ns.Read(resp, 0, 2) != 2 || resp[0] != 5 || resp[1] != 0)
+                    if (ReadExact(ns, resp, 0, 2) != 2 || resp[0] != 5 || resp[1] != 0)
                         return null;
 
                     // CONNECT ao host:port
@@ -396,16 +424,31 @@ namespace Torify
 
                     ns.Write(connectReq, 0, connectReq.Length);
 
-                    // Lê resposta SOCKS5
-                    byte[] connectResp = new byte[256];
-                    int read = ns.Read(connectResp, 0, connectResp.Length);
-                    if (read < 2 || connectResp[1] != 0)
-                        return null; // conexão falhou
+                    // Lê resposta SOCKS5 (header variável: ver + rep + rsv + atyp + bndaddr + bndport)
+                    byte[] hdr = new byte[4];
+                    if (ReadExact(ns, hdr, 0, 4) != 4) return null;
+                    if (hdr[0] != 5 || hdr[1] != 0) return null; // rep != succeeded
+                    byte atyp = hdr[3];
+                    int extra = 0;
+                    if (atyp == 1) extra = 4;        // IPv4
+                    else if (atyp == 4) extra = 16;  // IPv6
+                    else if (atyp == 3)               // domain
+                    {
+                        byte[] lenB = new byte[1];
+                        if (ReadExact(ns, lenB, 0, 1) != 1) return null;
+                        extra = lenB[0] + 2;
+                    }
+                    if (extra > 0)
+                    {
+                        byte[] skip = new byte[extra];
+                        ReadExact(ns, skip, 0, extra);
+                    }
 
                     // Manda requisição HTTP
-                    string httpReq = "GET " + path + " HTTP/1.0\r\n"
+                    string httpReq = "GET " + path + " HTTP/1.1\r\n"
                         + "Host: " + host + "\r\n"
                         + "User-Agent: Torify/1.3\r\n"
+                        + "Accept: */*\r\n"
                         + "Connection: close\r\n\r\n";
                     byte[] httpReqBytes = Encoding.ASCII.GetBytes(httpReq);
                     ns.Write(httpReqBytes, 0, httpReqBytes.Length);
@@ -414,19 +457,40 @@ namespace Torify
                     using (var ms = new MemoryStream())
                     {
                         byte[] buf = new byte[8192];
+                        int read;
                         while ((read = ns.Read(buf, 0, buf.Length)) > 0)
                             ms.Write(buf, 0, read);
 
                         string responseText = Encoding.ASCII.GetString(ms.ToArray());
 
-                        // Extrai o corpo (depois do \r\n\r\n)
-                        int bodyStart = responseText.IndexOf("\r\n\r\n");
-                        if (bodyStart > 0)
+                        int headerEnd = responseText.IndexOf("\r\n\r\n");
+                        if (headerEnd < 0) return null;
+                        string headers = responseText.Substring(0, headerEnd);
+                        string body = responseText.Substring(headerEnd + 4);
+
+                        // Trata Transfer-Encoding: chunked
+                        if (headers.ToLower().Contains("transfer-encoding: chunked"))
                         {
-                            string body = responseText.Substring(bodyStart + 4).Trim();
-                            if (!string.IsNullOrEmpty(body))
-                                return body;
+                            var sb = new StringBuilder();
+                            int pos = 0;
+                            while (pos < body.Length)
+                            {
+                                int nl = body.IndexOf("\r\n", pos);
+                                if (nl < 0) break;
+                                string sizeHex = body.Substring(pos, nl - pos).Trim();
+                                int chunkSize;
+                                if (!int.TryParse(sizeHex, System.Globalization.NumberStyles.HexNumber, null, out chunkSize))
+                                    break;
+                                if (chunkSize == 0) break;
+                                sb.Append(body.Substring(nl + 2, chunkSize));
+                                pos = nl + 2 + chunkSize + 2;
+                            }
+                            body = sb.ToString();
                         }
+
+                        body = body.Trim();
+                        if (!string.IsNullOrEmpty(body))
+                            return body;
                     }
                 }
             }
