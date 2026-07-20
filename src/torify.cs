@@ -14,21 +14,17 @@ using System.Windows.Forms;
 
 namespace Torify
 {
-    // ── helper de animação: valor que desliza suavemente até um alvo ──
+    // valor que desliza suavemente ate um alvo
     class Tween
     {
         public float Value;
         public float Target;
-        public float Speed = 0.12f;
-        public void Step()
-        {
-            Value += (Target - Value) * Speed;
-            if (Math.Abs(Target - Value) < 0.01f) Value = Target;
-        }
+        public float Speed = 0.14f;
+        public void Step() { Value += (Target - Value) * Speed; if (System.Math.Abs(Target - Value) < 0.01f) Value = Target; }
         public bool Done { get { return Value == Target; } }
     }
 
-    // ── dot de status / decorativo (pulsa) ──
+    // dot decorativo que pulsa
     class DotControl : Control
     {
         public Color DotColor = Color.White;
@@ -44,7 +40,7 @@ namespace Torify
         }
         protected override void OnPaint(PaintEventArgs e)
         {
-            float a = Pulse ? (0.45f + 0.55f * (float)Math.Abs(Math.Sin(phase))) : 1f;
+            float a = Pulse ? (0.45f + 0.55f * (float)System.Math.Abs(System.Math.Sin(phase))) : 1f;
             using (var b = new SolidBrush(Color.FromArgb((int)(255 * a), DotColor)))
             using (var g = e.Graphics)
             {
@@ -54,7 +50,7 @@ namespace Torify
         }
     }
 
-    // ── toggle animado (slide) ──
+    // toggle animado (slide)
     class ToggleControl : Control
     {
         public bool On = false;
@@ -97,7 +93,8 @@ namespace Torify
         public static Color Text { get { return Dark ? Color.White : Color.Black; } }
         public static Color Muted { get { return Dark ? Color.FromArgb(102, 102, 102) : Color.FromArgb(153, 153, 153); } }
         public static Color Accent { get { return Color.FromArgb(0, 224, 143); } }
-        public static Color CardBorderHi { get { return Dark ? Color.White : Color.Black; } }
+        public static Font Mono(int sz, FontStyle st) { return new Font("Consolas", sz, st); }
+        public static Font Ui(int sz, FontStyle st) { return new Font("Segoe UI", sz, st); }
     }
 
     class NavItem : Panel
@@ -105,29 +102,27 @@ namespace Torify
         public string Icon;
         public string Label;
         public bool Active = false;
+        bool hover = false;
         public NavItem(string icon, string label)
         {
             Icon = icon; Label = label;
             SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.DoubleBuffer, true);
-            Height = 42;
-            this.MouseEnter += (s, e) => { if (!Active) Invalidate(); };
-            this.MouseLeave += (s, e) => { if (!Active) Invalidate(); };
+            Height = 44;
+            this.MouseEnter += (s, e) => { hover = true; Invalidate(); };
+            this.MouseLeave += (s, e) => { hover = false; Invalidate(); };
         }
         protected override void OnPaint(PaintEventArgs e)
         {
             using (var g = e.Graphics)
             {
                 g.SmoothingMode = SmoothingMode.AntiAlias;
-                Color bar = Active ? Theme.Text : Color.Transparent;
-                using (var b = new SolidBrush(bar))
-                    g.FillRectangle(b, 0, 0, 3, Height);
-                Color txt = Active ? Theme.Text : (this.ClientRectangle.Contains(this.PointToClient(Cursor.Position)) ? Theme.Text : Theme.Muted);
+                Color bar = (Active || hover) ? Theme.Text : Color.Transparent;
+                using (var b = new SolidBrush(bar)) g.FillRectangle(b, 0, 0, 3, Height);
+                Color txt = (Active || hover) ? Theme.Text : Theme.Muted;
                 using (var sf = new StringFormat() { LineAlignment = StringAlignment.Center, Alignment = StringAlignment.Near })
                 {
-                    var fIcon = new Font("Segoe UI Symbol", 13, FontStyle.Regular);
-                    var fLabel = new Font("JetBrains Mono", 12, Active ? FontStyle.Bold : FontStyle.Regular);
-                    g.DrawString(Icon, fIcon, new SolidBrush(txt), new RectangleF(16, 0, 22, Height), sf);
-                    g.DrawString(Label, fLabel, new SolidBrush(txt), new RectangleF(44, 0, Width - 50, Height), sf);
+                    g.DrawString(Icon, new Font("Segoe UI Symbol", 13), new SolidBrush(txt), new RectangleF(16, 0, 22, Height), sf);
+                    g.DrawString(Label, Theme.Mono(12, Active ? FontStyle.Bold : FontStyle.Regular), new SolidBrush(txt), new RectangleF(46, 0, Width - 52, Height), sf);
                 }
             }
         }
@@ -136,6 +131,7 @@ namespace Torify
     class Card : Panel
     {
         Tween fade = new Tween();
+        public bool Hi = false;
         public Card()
         {
             SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.DoubleBuffer, true);
@@ -153,12 +149,10 @@ namespace Torify
                 using (var path = Ui.RoundRect(0, 0, Width - 1, Height - 1, 6))
                 {
                     Color bc = Theme.Dark ? Color.FromArgb(a, 51, 51, 51) : Color.FromArgb(a, 204, 204, 204);
-                    using (var pen = new Pen(bc, Hi ? 1.5f : 1f))
-                        g.DrawPath(pen, path);
+                    using (var pen = new Pen(bc, Hi ? 1.5f : 1f)) g.DrawPath(pen, path);
                 }
             }
         }
-        public bool Hi = false;
     }
 
     static class Ui
@@ -173,12 +167,15 @@ namespace Torify
             p.CloseFigure();
             return p;
         }
-        public static void StyleButton(Button b)
+        public static void StyleButton(Button b, bool accent)
         {
             b.FlatStyle = FlatStyle.Flat;
             b.FlatAppearance.BorderSize = 1;
-            b.Font = new Font("JetBrains Mono", 11, FontStyle.Bold);
+            b.Font = Theme.Mono(11, FontStyle.Bold);
             b.Cursor = Cursors.Hand;
+            b.BackColor = accent ? Theme.Accent : Theme.WinBg;
+            b.ForeColor = accent ? Color.Black : Theme.Text;
+            b.FlatAppearance.BorderColor = accent ? Theme.Accent : Theme.Border;
         }
     }
 
@@ -188,18 +185,9 @@ namespace Torify
         [DllImport("user32.dll")] static extern bool ReleaseCapture();
         [DllImport("user32.dll")] static extern int SendMessage(IntPtr h, int m, int w, int l);
 
-        // paths
-        static string BaseDir;
-        static string TorDir;
-        static string TorExe;
-        static string Torrc;
-        static string PcDir;
-        static string PcExe;
-        static string PcConf;
-        static string AppsFile;
+        static string BaseDir, TorDir, TorExe, Torrc, PcDir, PcExe, PcConf, AppsFile;
         static DateTime _lastNewnym = DateTime.MinValue;
 
-        // ui
         Panel sidebar, content, titlebar;
         Label titleLabel, versionLabel, statusLabel;
         DotControl statusDot;
@@ -222,17 +210,17 @@ namespace Torify
         {
             InitPaths();
             this.Text = "torify";
-            this.Size = new Size(660, 460);
+            this.Size = new Size(720, 500);
             this.FormBorderStyle = FormBorderStyle.None;
             this.BackColor = Theme.WinBg;
             this.StartPosition = FormStartPosition.CenterScreen;
             this.Load += (s, e) =>
             {
-                this.Region = Region.FromHrgn(CreateRoundRectRgn(0, 0, Width, Height, 10, 10));
+                try { this.Region = Region.FromHrgn(CreateRoundRectRgn(0, 0, Width, Height, 12, 12)); } catch { }
                 new Thread(SetupThread).Start();
             };
             BuildUi();
-            clock = new System.Windows.Forms.Timer(); clock.Interval = 1000; clock.Tick += (s, e) => RefreshStatus(); clock.Start();
+            clock = new System.Windows.Forms.Timer(); clock.Interval = 1500; clock.Tick += (s, e) => RefreshStatus(); clock.Start();
         }
 
         void SetupThread()
@@ -246,50 +234,44 @@ namespace Torify
                         RunSetup();
                 }
             }
-            catch { }
+            catch (Exception ex) { this.BeginInvoke((Action)(() => FlashLbl(statusLabel, "setup err"))); }
             this.BeginInvoke((Action)(() => { EnableUi(true); RefreshStatus(); }));
         }
 
         void EnableUi(bool on)
         {
             foreach (NavItem n in sidebar.Controls) n.Enabled = on;
-            statusLabel.Text = on ? statusLabel.Text : "setting up...";
         }
 
-        // ── build UI ──
         void BuildUi()
         {
-            titlebar = new Panel() { Height = 46, Dock = DockStyle.Top, BackColor = Theme.WinBg };
+            // titlebar
+            titlebar = new Panel() { Height = 48, Dock = DockStyle.Top, BackColor = Theme.WinBg };
             titlebar.Paint += (s, e) =>
             {
-                using (var g = e.Graphics)
-                using (var pen = new Pen(Theme.Border, 1))
+                using (var g = e.Graphics) using (var pen = new Pen(Theme.Border, 1))
                     g.DrawLine(pen, 0, titlebar.Height - 1, titlebar.Width, titlebar.Height - 1);
             };
-            var tleft = new Panel() { Dock = DockStyle.Left, Width = 200, BackColor = Color.Transparent };
-            var dot = new DotControl() { DotColor = Color.White, Location = new Point(16, 19) };
-            titleLabel = new Label() { Text = "torify", ForeColor = Theme.Text, Font = new Font("JetBrains Mono", 14, FontStyle.Regular), Location = new Point(32, 14), AutoSize = true };
-            versionLabel = new Label() { Text = "v1.4", ForeColor = Theme.Muted, Font = new Font("JetBrains Mono", 11), Location = new Point(96, 17), AutoSize = true };
+            var tleft = new Panel() { Dock = DockStyle.Left, Width = 220, BackColor = Color.Transparent };
+            var dot = new DotControl() { DotColor = Color.White, Location = new Point(16, 20) };
+            titleLabel = new Label() { Text = "torify", ForeColor = Theme.Text, Font = Theme.Mono(14, FontStyle.Regular), Location = new Point(32, 15), AutoSize = true };
+            versionLabel = new Label() { Text = "v1.5", ForeColor = Theme.Muted, Font = Theme.Mono(11, FontStyle.Regular), Location = new Point(98, 18), AutoSize = true };
             tleft.Controls.Add(dot); tleft.Controls.Add(titleLabel); tleft.Controls.Add(versionLabel);
 
-            var tright = new Panel() { Dock = DockStyle.Right, Width = 130, BackColor = Color.Transparent };
-            statusDot = new DotControl() { DotColor = Theme.Accent, Pulse = true, Location = new Point(18, 18) };
-            statusLabel = new Label() { Text = "offline", ForeColor = Theme.Text, Font = new Font("JetBrains Mono", 11), Location = new Point(34, 15), AutoSize = true };
-            tright.Controls.Add(statusDot); tright.Controls.Add(statusLabel);
-
-            // theme toggle (mini button)
-            var themeBtn = new Label() { Text = "◐", ForeColor = Theme.Muted, Font = new Font("Segoe UI Symbol", 14), Location = new Point(95, 13), AutoSize = true, Cursor = Cursors.Hand };
+            var tright = new Panel() { Dock = DockStyle.Right, Width = 200, BackColor = Color.Transparent };
+            statusDot = new DotControl() { DotColor = Theme.Accent, Pulse = true, Location = new Point(20, 19) };
+            statusLabel = new Label() { Text = "offline", ForeColor = Theme.Text, Font = Theme.Mono(11, FontStyle.Regular), Location = new Point(36, 16), AutoSize = true };
+            var themeBtn = new Label() { Text = "◐", ForeColor = Theme.Muted, Font = new Font("Segoe UI Symbol", 14), Location = new Point(150, 14), AutoSize = true, Cursor = Cursors.Hand };
             themeBtn.Click += (s, e) => ToggleTheme();
-            tright.Controls.Add(themeBtn);
-
+            tright.Controls.Add(statusDot); tright.Controls.Add(statusLabel); tright.Controls.Add(themeBtn);
             titlebar.Controls.Add(tleft); titlebar.Controls.Add(tright);
-            titlebar.MouseDown += (s, e) => { ReleaseCapture(); SendMessage(this.Handle, 0xA1, 0x2, 0); };
+            titlebar.MouseDown += (s, e) => { if (e.Button == MouseButtons.Left) { ReleaseCapture(); SendMessage(this.Handle, 0xA1, 0x2, 0); } };
 
-            sidebar = new Panel() { Width = 170, Dock = DockStyle.Left, BackColor = Theme.WinBg };
+            // sidebar
+            sidebar = new Panel() { Width = 180, Dock = DockStyle.Left, BackColor = Theme.WinBg };
             sidebar.Paint += (s, e) =>
             {
-                using (var g = e.Graphics)
-                using (var pen = new Pen(Theme.Border, 1))
+                using (var g = e.Graphics) using (var pen = new Pen(Theme.Border, 1))
                     g.DrawLine(pen, sidebar.Width - 1, 0, sidebar.Width - 1, sidebar.Height);
             };
             string[,] items = {
@@ -300,30 +282,25 @@ namespace Torify
                 {"rotate","↻","auto-rotate"},
                 {"stop","⏻","stop tor"}
             };
-            int yy = 16;
+            int yy = 18;
             for (int i = 0; i < items.GetLength(0); i++)
             {
-                var n = new NavItem(items[i, 1], items[i, 2]) { Width = 170, Location = new Point(0, yy) };
+                var n = new NavItem(items[i, 1], items[i, 2]) { Width = 180, Location = new Point(0, yy) };
                 string key = items[i, 0];
                 n.Click += (s, e) => SelectNav(key);
                 navs[key] = n;
                 sidebar.Controls.Add(n);
-                yy += 46;
+                yy += 48;
             }
             navs["start"].Active = true;
 
-            content = new Panel() { Dock = DockStyle.Fill, BackColor = Theme.WinBg, Padding = new Padding(22, 18, 22, 18) };
+            content = new Panel() { Dock = DockStyle.Fill, BackColor = Theme.WinBg, Padding = new Padding(24, 20, 24, 20) };
 
             this.Controls.Add(content);
             this.Controls.Add(sidebar);
             this.Controls.Add(titlebar);
 
-            BuildStartView();
-            BuildCheckView();
-            BuildConfigView();
-            BuildAppsView();
-            BuildRotateView();
-            BuildStopView();
+            BuildStartView(); BuildCheckView(); BuildConfigView(); BuildAppsView(); BuildRotateView(); BuildStopView();
             ShowView("start");
         }
 
@@ -334,137 +311,121 @@ namespace Torify
             foreach (var kv in views) kv.Value.Visible = (kv.Key == key);
             foreach (var kv in navs) kv.Value.Active = (kv.Key == key);
             sidebar.Refresh();
+            if (key == "check") ShowCheck();
+            if (key == "apps") RefreshApps();
         }
         void SelectNav(string key) { ShowView(key); }
 
-        // ── START view ──
+        Label SectionLabel(string t) { return new Label() { Text = t, ForeColor = Theme.Muted, Font = Theme.Mono(11, FontStyle.Regular), Location = new Point(0, 0), AutoSize = true }; }
+
+        // START
         Label startStatus;
         void BuildStartView()
         {
             var p = new Panel() { Dock = DockStyle.Fill };
-            var head = SectionLabel("start tor");
-            var btn = new Button() { Text = "start", Size = new Size(120, 34), Location = new Point(0, 32) };
-            Ui.StyleButton(btn); btn.BackColor = Theme.Accent; btn.ForeColor = Color.Black; btn.FlatAppearance.BorderColor = Theme.Accent;
-            btn.Click += (s, e) => { btn.Text = "starting..."; btn.Enabled = false; new Thread(() => { StartTor(); this.BeginInvoke((Action)(() => { btn.Text = "running"; btn.Enabled = true; ShowCheck(); })); }).Start(); };
-            startStatus = new Label() { Text = "boot tor, rotate ip, verify", ForeColor = Theme.Muted, Font = new Font("JetBrains Mono", 11), Location = new Point(0, 74), AutoSize = true };
-            p.Controls.Add(head); p.Controls.Add(btn); p.Controls.Add(startStatus);
+            p.Controls.Add(SectionLabel("start tor"));
+            var btn = new Button() { Text = "start", Size = new Size(120, 34), Location = new Point(0, 34) };
+            Ui.StyleButton(btn, true);
+            btn.Click += (s, e) => { btn.Enabled = false; btn.Text = "starting..."; new Thread(() => { try { StartTor(); } catch { } this.BeginInvoke((Action)(() => { btn.Text = IsTorRunning() ? "running" : "start"; btn.Enabled = true; ShowView("check"); })); }).Start(); };
+            startStatus = new Label() { Text = "boot tor, rotate ip, verify", ForeColor = Theme.Muted, Font = Theme.Mono(11, FontStyle.Regular), Location = new Point(0, 78), AutoSize = true };
+            p.Controls.Add(btn); p.Controls.Add(startStatus);
             views["start"] = p; content.Controls.Add(p);
         }
 
-        // ── CHECK view ──
+        // CHECK
         void BuildCheckView()
         {
             var p = new Panel() { Dock = DockStyle.Fill };
-            var head = SectionLabel("ip comparison");
-            realCard = new Card() { Size = new Size(250, 70), Location = new Point(0, 30) };
-            torCard = new Card() { Size = new Size(250, 70), Location = new Point(270, 30) }; torCard.Hi = true;
-            var rlab = CardLabel("real ip", new Point(14, 12)); var rval = new Label() { Name = "rv", Text = "—", ForeColor = Theme.Text, Font = new Font("JetBrains Mono", 13, FontStyle.Bold), Location = new Point(14, 34), AutoSize = true };
-            var tlab = CardLabel("tor ip", new Point(14, 12)); var tval = new Label() { Name = "tv", Text = "—", ForeColor = Theme.Text, Font = new Font("JetBrains Mono", 13, FontStyle.Bold), Location = new Point(14, 34), AutoSize = true };
+            p.Controls.Add(SectionLabel("ip comparison"));
+            realCard = new Card() { Size = new Size(270, 72), Location = new Point(0, 32) };
+            torCard = new Card() { Size = new Size(270, 72), Location = new Point(290, 32) }; torCard.Hi = true;
+            var rlab = new Label() { Text = "real ip", ForeColor = Theme.Muted, Font = Theme.Mono(10, FontStyle.Regular), Location = new Point(14, 12), AutoSize = true };
+            var rval = new Label() { Name = "rv", Text = "—", ForeColor = Theme.Text, Font = Theme.Mono(13, FontStyle.Bold), Location = new Point(14, 34), AutoSize = true };
+            var tlab = new Label() { Text = "tor ip", ForeColor = Theme.Muted, Font = Theme.Mono(10, FontStyle.Regular), Location = new Point(14, 12), AutoSize = true };
+            var tval = new Label() { Name = "tv", Text = "—", ForeColor = Theme.Text, Font = Theme.Mono(13, FontStyle.Bold), Location = new Point(14, 34), AutoSize = true };
             realCard.Controls.Add(rlab); realCard.Controls.Add(rval);
             torCard.Controls.Add(tlab); torCard.Controls.Add(tval);
             realIpVal = rval; torIpVal = tval;
-            var btn = new Button() { Text = "refresh", Size = new Size(110, 32), Location = new Point(0, 116) };
-            Ui.StyleButton(btn); btn.BackColor = Theme.WinBg; btn.ForeColor = Theme.Text; btn.FlatAppearance.BorderColor = Theme.Border;
+            var btn = new Button() { Text = "refresh", Size = new Size(110, 32), Location = new Point(0, 120) };
+            Ui.StyleButton(btn, false);
             btn.Click += (s, e) => ShowCheck();
-            p.Controls.Add(head); p.Controls.Add(realCard); p.Controls.Add(torCard); p.Controls.Add(btn);
+            p.Controls.Add(realCard); p.Controls.Add(torCard); p.Controls.Add(btn);
             views["check"] = p; content.Controls.Add(p);
         }
         void ShowCheck()
         {
             var t = new Thread(() =>
             {
-                string real = GetRealIP();
-                string tor = CheckTorIP();
-                this.BeginInvoke((Action)(() =>
-                {
-                    realIpVal.Text = string.IsNullOrEmpty(real) ? "falhou" : real;
-                    torIpVal.Text = string.IsNullOrEmpty(tor) ? "offline" : tor;
-                }));
+                string real = GetRealIP(); string tor = CheckTorIP();
+                this.BeginInvoke((Action)(() => { realIpVal.Text = string.IsNullOrEmpty(real) ? "failed" : real; torIpVal.Text = string.IsNullOrEmpty(tor) ? "offline" : tor; }));
             });
             t.Start();
         }
 
-        // ── CONFIG view ──
+        // CONFIG
         void BuildConfigView()
         {
             var p = new Panel() { Dock = DockStyle.Fill };
-            var head = SectionLabel("configure");
-            pathBox = new TextBox() { Location = new Point(0, 32), Width = 380, Font = new Font("JetBrains Mono", 11), BackColor = Theme.WinBg, ForeColor = Theme.Text, BorderStyle = BorderStyle.FixedSingle };
+            p.Controls.Add(SectionLabel("configure"));
+            pathBox = new TextBox() { Location = new Point(0, 34), Width = 400, Font = Theme.Mono(11, FontStyle.Regular), BackColor = Theme.WinBg, ForeColor = Theme.Text, BorderStyle = BorderStyle.FixedSingle };
             var cfgFile = Path.Combine(BaseDir, "target-app.txt");
             if (File.Exists(cfgFile)) pathBox.Text = File.ReadAllText(cfgFile).Trim();
-            var btn = new Button() { Text = "save", Size = new Size(90, 30), Location = new Point(390, 31) };
-            Ui.StyleButton(btn); btn.BackColor = Theme.Accent; btn.ForeColor = Color.Black; btn.FlatAppearance.BorderColor = Theme.Accent;
-            btn.Click += (s, e) =>
-            {
-                if (File.Exists(pathBox.Text.Trim())) { File.WriteAllText(cfgFile, pathBox.Text.Trim()); Flash(btn, "saved"); }
-                else Flash(btn, "not found");
-            };
-            var hint = new Label() { Text = "set the target executable path", ForeColor = Theme.Muted, Font = new Font("JetBrains Mono", 11), Location = new Point(0, 70), AutoSize = true };
-            var btnAuto = new Button() { Text = "auto-detect", Size = new Size(110, 30), Location = new Point(0, 100) };
-            Ui.StyleButton(btnAuto); btnAuto.BackColor = Theme.WinBg; btnAuto.ForeColor = Theme.Text; btnAuto.FlatAppearance.BorderColor = Theme.Border;
+            var btn = new Button() { Text = "save", Size = new Size(90, 30), Location = new Point(410, 33) };
+            Ui.StyleButton(btn, true);
+            btn.Click += (s, e) => { if (File.Exists(pathBox.Text.Trim())) { File.WriteAllText(cfgFile, pathBox.Text.Trim()); Flash(btn, "saved"); } else Flash(btn, "not found"); };
+            var hint = new Label() { Text = "set the target executable path", ForeColor = Theme.Muted, Font = Theme.Mono(11, FontStyle.Regular), Location = new Point(0, 72), AutoSize = true };
+            var btnAuto = new Button() { Text = "auto-detect", Size = new Size(120, 30), Location = new Point(0, 102) };
+            Ui.StyleButton(btnAuto, false);
             btnAuto.Click += (s, e) => { string f = FindTargetApp(); if (f != null) { pathBox.Text = f; File.WriteAllText(cfgFile, f); Flash(btnAuto, "set"); } else Flash(btnAuto, "none"); };
-            p.Controls.Add(head); p.Controls.Add(pathBox); p.Controls.Add(btn); p.Controls.Add(hint); p.Controls.Add(btnAuto);
+            p.Controls.Add(pathBox); p.Controls.Add(btn); p.Controls.Add(hint); p.Controls.Add(btnAuto);
             views["config"] = p; content.Controls.Add(p);
         }
 
-        // ── APPS view ──
+        // APPS
         void BuildAppsView()
         {
             var p = new Panel() { Dock = DockStyle.Fill };
-            var head = SectionLabel("apps");
-            appsBox = new ListBox() { Location = new Point(0, 30), Size = new Size(400, 150), Font = new Font("JetBrains Mono", 11), BackColor = Theme.WinBg, ForeColor = Theme.Text, BorderStyle = BorderStyle.FixedSingle };
-            var btnAdd = new Button() { Text = "add", Size = new Size(90, 30), Location = new Point(410, 30) };
-            Ui.StyleButton(btnAdd); btnAdd.BackColor = Theme.WinBg; btnAdd.ForeColor = Theme.Text; btnAdd.FlatAppearance.BorderColor = Theme.Border;
-            btnAdd.Click += (s, e) =>
-            {
-                var d = new OpenFileDialog() { Filter = "Executables (*.exe)|*.exe", Title = "select executable to route via tor" };
-                if (d.ShowDialog() == DialogResult.OK) { AddAppToList(d.FileName); LaunchAppViaProxy(d.FileName, false); RefreshApps(); }
-            };
-            var btnOpen = new Button() { Text = "open via tor", Size = new Size(110, 30), Location = new Point(410, 66) };
-            Ui.StyleButton(btnOpen); btnOpen.BackColor = Theme.Accent; btnOpen.ForeColor = Color.Black; btnOpen.FlatAppearance.BorderColor = Theme.Accent;
-            btnOpen.Click += (s, e) =>
-            {
-                if (appsBox.SelectedIndex >= 0) { StartTor(); if (IsTorRunning()) { SendNEWNYM(); Thread.Sleep(1500); LaunchAppViaProxy(apps[appsBox.SelectedIndex].Path, false); } }
-            };
-            p.Controls.Add(head); p.Controls.Add(appsBox); p.Controls.Add(btnAdd); p.Controls.Add(btnOpen);
+            p.Controls.Add(SectionLabel("apps"));
+            appsBox = new ListBox() { Location = new Point(0, 32), Size = new Size(420, 170), Font = Theme.Mono(11, FontStyle.Regular), BackColor = Theme.WinBg, ForeColor = Theme.Text, BorderStyle = BorderStyle.FixedSingle };
+            var btnAdd = new Button() { Text = "add", Size = new Size(90, 30), Location = new Point(440, 32) };
+            Ui.StyleButton(btnAdd, false);
+            btnAdd.Click += (s, e) => { var d = new OpenFileDialog() { Filter = "Executables (*.exe)|*.exe", Title = "select executable to route via tor" }; if (d.ShowDialog() == DialogResult.OK) { AddAppToList(d.FileName); LaunchAppViaProxy(d.FileName, false); RefreshApps(); } };
+            var btnOpen = new Button() { Text = "open via tor", Size = new Size(120, 30), Location = new Point(440, 68) };
+            Ui.StyleButton(btnOpen, true);
+            btnOpen.Click += (s, e) => { if (appsBox.SelectedIndex >= 0) { StartTor(); if (IsTorRunning()) { SendNEWNYM(); Thread.Sleep(1500); LaunchAppViaProxy(apps[appsBox.SelectedIndex].Path, false); } } };
+            p.Controls.Add(appsBox); p.Controls.Add(btnAdd); p.Controls.Add(btnOpen);
             views["apps"] = p; content.Controls.Add(p);
-            RefreshApps();
         }
         void RefreshApps()
         {
             apps = LoadApps();
             appsBox.Items.Clear();
-            foreach (var a in apps) appsBox.Items.Add(a.Name + "  —  " + (Process.GetProcessesByName(Path.GetFileNameWithoutExtension(a.Path)).Length > 0 ? "active" : "idle"));
+            foreach (var a in apps) appsBox.Items.Add(a.Name + "  —  " + (Process.GetProcessesByName(System.IO.Path.GetFileNameWithoutExtension(a.Path)).Length > 0 ? "active" : "idle"));
         }
 
-        // ── ROTATE view ──
+        // ROTATE
         void BuildRotateView()
         {
             var p = new Panel() { Dock = DockStyle.Fill };
-            var head = SectionLabel("auto-rotate");
-            rotateToggle = new ToggleControl() { Location = new Point(300, 30) };
+            p.Controls.Add(SectionLabel("auto-rotate"));
+            var rtitle = new Label() { Text = "auto-rotate", ForeColor = Theme.Text, Font = Theme.Mono(13, FontStyle.Bold), Location = new Point(0, 34), AutoSize = true };
+            rotateToggle = new ToggleControl() { Location = new Point(300, 32) };
             rotateToggle.Toggled += (s, e) =>
             {
                 if (rotateToggle.On)
                 {
                     string app = FindTargetApp();
                     if (app == null) { FlashLbl(statusLabel, "no app set"); rotateToggle.On = false; return; }
-                    StartTor();
+                    try { StartTor(); } catch { }
                     if (!IsTorRunning()) { rotateToggle.On = false; return; }
                     rotating = true; rotateCountdown = rotateInterval;
                     LaunchAppViaProxy(app, false);
-                    rotateTimer = new System.Windows.Forms.Timer(); rotateTimer.Interval = 1000;
-                    rotateTimer.Tick += RotateTick; rotateTimer.Start();
+                    rotateTimer = new System.Windows.Forms.Timer(); rotateTimer.Interval = 1000; rotateTimer.Tick += RotateTick; rotateTimer.Start();
                 }
-                else
-                {
-                    rotating = false;
-                    if (rotateTimer != null) rotateTimer.Stop();
-                }
+                else { rotating = false; if (rotateTimer != null) rotateTimer.Stop(); }
             };
-            rotateSub = new Label() { Text = "next in — · interval 60s", ForeColor = Theme.Muted, Font = new Font("JetBrains Mono", 10), Location = new Point(0, 64), AutoSize = true };
-            var rtitle = new Label() { Text = "auto-rotate", ForeColor = Theme.Text, Font = new Font("JetBrains Mono", 13, FontStyle.Bold), Location = new Point(0, 32), AutoSize = true };
-            p.Controls.Add(head); p.Controls.Add(rtitle); p.Controls.Add(rotateToggle); p.Controls.Add(rotateSub);
+            rotateSub = new Label() { Text = "next in — · interval 60s", ForeColor = Theme.Muted, Font = Theme.Mono(10, FontStyle.Regular), Location = new Point(0, 68), AutoSize = true };
+            p.Controls.Add(rtitle); p.Controls.Add(rotateToggle); p.Controls.Add(rotateSub);
             views["rotate"] = p; content.Controls.Add(p);
         }
         void RotateTick(object s, EventArgs e)
@@ -472,47 +433,33 @@ namespace Torify
             rotateCountdown--;
             if (rotateCountdown <= 0)
             {
-                SendNEWNYM();
-                Thread.Sleep(1500);
-                ShowCheck();
-                rotateCountdown = rotateInterval;
+                try { SendNEWNYM(); } catch { }
+                Thread.Sleep(1500); ShowCheck(); rotateCountdown = rotateInterval;
             }
             rotateSub.Text = string.Format("next in {0}s · interval {1}s", rotateCountdown, rotateInterval);
         }
 
-        // ── STOP view ──
+        // STOP
         void BuildStopView()
         {
             var p = new Panel() { Dock = DockStyle.Fill };
-            var head = SectionLabel("stop tor");
-            var btn = new Button() { Text = "stop tor", Size = new Size(120, 34), Location = new Point(0, 32) };
-            Ui.StyleButton(btn); btn.BackColor = Theme.WinBg; btn.ForeColor = Theme.Text; btn.FlatAppearance.BorderColor = Theme.Border;
+            p.Controls.Add(SectionLabel("stop tor"));
+            var btn = new Button() { Text = "stop tor", Size = new Size(120, 34), Location = new Point(0, 34) };
+            Ui.StyleButton(btn, false);
             btn.Click += (s, e) => { KillTor(); Flash(btn, "stopped"); };
-            var hint = new Label() { Text = "kills the tor process", ForeColor = Theme.Muted, Font = new Font("JetBrains Mono", 11), Location = new Point(0, 76), AutoSize = true };
-            p.Controls.Add(head); p.Controls.Add(btn); p.Controls.Add(hint);
+            var hint = new Label() { Text = "kills the tor process", ForeColor = Theme.Muted, Font = Theme.Mono(11, FontStyle.Regular), Location = new Point(0, 78), AutoSize = true };
+            p.Controls.Add(btn); p.Controls.Add(hint);
             views["stop"] = p; content.Controls.Add(p);
         }
 
-        Label SectionLabel(string t)
-        {
-            return new Label() { Text = t, ForeColor = Theme.Muted, Font = new Font("JetBrains Mono", 11), Location = new Point(0, 0), AutoSize = true };
-        }
-        Label CardLabel(string t, Point loc)
-        {
-            return new Label() { Text = t, ForeColor = Theme.Muted, Font = new Font("JetBrains Mono", 10), Location = loc, AutoSize = true };
-        }
         void Flash(Button b, string txt) { string o = b.Text; b.Text = txt; var tm = new System.Windows.Forms.Timer(); tm.Interval = 900; tm.Tick += (s, e) => { b.Text = o; tm.Stop(); }; tm.Start(); }
         void FlashLbl(Label l, string txt) { string o = l.Text; l.Text = txt; var tm = new System.Windows.Forms.Timer(); tm.Interval = 1200; tm.Tick += (s, e) => { l.Text = o; tm.Stop(); }; tm.Start(); }
 
         void ToggleTheme()
         {
             Theme.Dark = !Theme.Dark;
-            this.BackColor = Theme.WinBg;
-            titlebar.BackColor = Theme.WinBg;
-            sidebar.BackColor = Theme.WinBg;
-            content.BackColor = Theme.WinBg;
-            titleLabel.ForeColor = Theme.Text; versionLabel.ForeColor = Theme.Muted;
-            statusLabel.ForeColor = Theme.Text;
+            this.BackColor = Theme.WinBg; titlebar.BackColor = Theme.WinBg; sidebar.BackColor = Theme.WinBg; content.BackColor = Theme.WinBg;
+            titleLabel.ForeColor = Theme.Text; versionLabel.ForeColor = Theme.Muted; statusLabel.ForeColor = Theme.Text;
             statusDot.DotColor = rotating ? Theme.Accent : (IsTorRunning() ? Theme.Accent : Theme.Muted);
             foreach (NavItem n in sidebar.Controls) n.Invalidate();
             foreach (Control c in content.Controls) c.Refresh();
@@ -526,21 +473,18 @@ namespace Torify
             statusLabel.Text = running && !string.IsNullOrEmpty(tor) ? "connected" : (running ? "booting" : "offline");
             statusDot.DotColor = (running && !string.IsNullOrEmpty(tor)) ? Theme.Accent : (running ? Theme.Muted : Theme.Muted);
             statusDot.Pulse = (running && !string.IsNullOrEmpty(tor));
-            if (current == "check") { if (!string.IsNullOrEmpty(realIpVal.Text) && realIpVal.Text == "—") ShowCheck(); }
         }
 
-        // ════════════════════ LÓGICA (mantida da v1.4) ════════════════════
+        // ════════════════════ CORE (Tor / proxychains / SOCKS5) ════════════════════
         class AppEntry { public string Name; public string Path; }
 
         void InitPaths()
         {
             BaseDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Torify");
             Directory.CreateDirectory(BaseDir);
-            TorDir = Path.Combine(BaseDir, "tor");
-            TorExe = Path.Combine(TorDir, "tor.exe");
+            TorDir = Path.Combine(BaseDir, "tor"); TorExe = Path.Combine(TorDir, "tor.exe");
             Torrc = Path.Combine(TorDir, "Data", "Tor", "torrc");
-            PcDir = Path.Combine(BaseDir, "proxychains");
-            PcExe = FindPcExe();
+            PcDir = Path.Combine(BaseDir, "proxychains"); PcExe = FindPcExe();
             PcConf = Path.Combine(PcDir, "proxychains.conf");
             AppsFile = Path.Combine(BaseDir, "apps.txt");
         }
@@ -551,7 +495,7 @@ namespace Torify
             if (File.Exists(setupDone)) return;
             using (var wc = new WebClient())
             {
-                wc.DownloadProgressChanged += (s, e) => { this.BeginInvoke((Action)(() => { statusLabel.Text = "setup " + e.ProgressPercentage + "%"; })); };
+                wc.DownloadProgressChanged += (s, e) => { try { this.BeginInvoke((Action)(() => { statusLabel.Text = "setup " + e.ProgressPercentage + "%"; })); } catch { } };
                 string torVer = "15.0.18";
                 string torUrl = "https://www.torproject.org/dist/torbrowser/" + torVer + "/tor-expert-bundle-windows-x86_64-" + torVer + ".tar.gz";
                 string torFile = Path.Combine(BaseDir, "tor-expert.tar.gz");
@@ -567,7 +511,7 @@ namespace Torify
                 }
                 File.Delete(torFile);
                 Directory.CreateDirectory(Path.Combine(TorDir, "Data", "Tor"));
-                File.WriteAllText(Torrc, "SOCKSPort 127.0.0.1:9050\nControlPort 127.0.0.1:9051\nCookieAuthentication 0\nDataDirectory " + TorDir + "\\Data\\Tor\nLog notice stdout\n");
+                File.WriteAllText(Torrc, "SocksPort 127.0.0.1:9050\nControlPort 127.0.0.1:9051\nCookieAuthentication 0\nDataDirectory " + TorDir + "\\Data\\Tor\nLog notice stdout\n");
                 string pcVer = "0.6.8";
                 string pcUrl = "https://github.com/shunf4/proxychains-windows/releases/download/" + pcVer + "/proxychains_" + pcVer + "_win32_x64.zip";
                 string pcFile = Path.Combine(BaseDir, "proxychains.zip");
@@ -642,7 +586,7 @@ namespace Torify
                     int extra = 0; byte atyp = hdr[3];
                     if (atyp == 1) extra = 4; else if (atyp == 4) extra = 16; else if (atyp == 3) { byte[] lb = new byte[1]; if (ReadExact(ns, lb, 0, 1) != 1) return null; extra = lb[0] + 2; }
                     if (extra > 0) { byte[] sk = new byte[extra]; ReadExact(ns, sk, 0, extra); }
-                    string http = "GET " + path + " HTTP/1.1\r\nHost: " + host + "\r\nUser-Agent: Torify/1.4\r\nAccept: */*\r\nConnection: close\r\n\r\n";
+                    string http = "GET " + path + " HTTP/1.1\r\nHost: " + host + "\r\nUser-Agent: Torify/1.5\r\nAccept: */*\r\nConnection: close\r\n\r\n";
                     byte[] hb2 = Encoding.ASCII.GetBytes(http); ns.Write(hb2, 0, hb2.Length);
                     using (var ms = new MemoryStream())
                     {
@@ -665,10 +609,7 @@ namespace Torify
             catch { }
             return null;
         }
-        string GetRealIP()
-        {
-            try { return new WebClient().DownloadString("https://api.ipify.org").Trim(); } catch { return null; }
-        }
+        string GetRealIP() { try { return new WebClient().DownloadString("https://api.ipify.org").Trim(); } catch { return null; } }
         string CheckTorIP()
         {
             string ip = HttpGetViaSocks5("api.ipify.org", 80, "/");
@@ -705,7 +646,7 @@ namespace Torify
             {
                 var proc = new Process(); proc.StartInfo.FileName = PcExe; proc.StartInfo.Arguments = "-q -f \"" + PcConf + "\" \"" + path + "\""; proc.StartInfo.WorkingDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile); proc.StartInfo.UseShellExecute = true; proc.Start();
             }
-            catch (Exception ex) { FlashLbl(statusLabel, "err: " + ex.Message); }
+            catch (Exception ex) { FlashLbl(statusLabel, "err"); }
         }
         void AddAppToList(string path)
         {
@@ -739,7 +680,7 @@ namespace Torify
                 Application.SetCompatibleTextRenderingDefault(false);
                 Application.Run(new MainForm());
             }
-            catch (Exception ex) { MessageBox.Show(ex.Message, "torify", MessageBoxButtons.OK); }
+            catch (Exception ex) { try { MessageBox.Show(ex.Message, "torify", MessageBoxButtons.OK); } catch { } }
         }
     }
 }
