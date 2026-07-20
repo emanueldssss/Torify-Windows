@@ -13,7 +13,7 @@ $ScriptDir = $PSScriptRoot
 if (!(Test-Path $Base)) { New-Item -ItemType Directory -Path $Base -Force | Out-Null }
 
 Write-Host "`n  ========================" -ForegroundColor Magenta
-Write-Host "     TORIFY v1.3 - Setup" -ForegroundColor Magenta
+Write-Host "     TORIFY v1.4 - Setup" -ForegroundColor Magenta
 Write-Host "  ========================" -ForegroundColor Magenta
 Write-Host "`n"
 

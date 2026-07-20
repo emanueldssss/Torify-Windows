@@ -1,8 +1,8 @@
 # Torify
 
-Roteia qualquer aplicativo Windows pelo Tor. Usa Tor Expert Bundle + proxychains-windows.
+Route any Windows app through Tor. Built on the Tor Expert Bundle + proxychains-windows.
 
-Feito pra contornar limites diários de CLIs e serviços que restringem por IP. Cada sessão usa um IP Tor diferente, e a rotação automática troca o IP em intervalos definidos.
+Made to dodge daily IP-based limits on CLIs and services. Every session rides a different Tor exit, and auto-rotate swaps the IP on a timer.
 
 ---
 
@@ -42,18 +42,20 @@ $sc.Save()
 ## Como usar
 
 ```
-  ========================
-    Torify v1.3
-  ========================
+  ╭─ torify ────────────────────── v1.4 ╮
+  │ tor proxy automation for windows       │
+  ╰────────────────────────────────────╯
 
-  [1] Iniciar Tor + Verificar Conexão
-  [2] Conferir IP
-  [3] Configurar
-  [4] Adicionar App
-  [5] Abrir App com Tor
-  [6] Parar Tor
-  [7] Auto-Rotate (torsocks mode)
-  [0] Sair
+   1  start tor + verify connection
+   2  check ip
+   3  configure
+   4  add app
+   5  open app via tor
+   6  stop tor
+   7  auto-rotate
+   0  exit
+
+  ›
 ```
 
 ### Primeiro uso
@@ -89,7 +91,7 @@ Aperta **Q** pra parar.
 
 ---
 
-## Segurança — v1.3
+## Segurança — v1.4
 
 ### strict_chain
 

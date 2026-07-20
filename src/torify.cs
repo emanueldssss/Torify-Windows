@@ -447,7 +447,7 @@ namespace Torify
                     // Manda requisição HTTP
                     string httpReq = "GET " + path + " HTTP/1.1\r\n"
                         + "Host: " + host + "\r\n"
-                        + "User-Agent: Torify/1.3\r\n"
+                        + "User-Agent: Torify/1.4\r\n"
                         + "Accept: */*\r\n"
                         + "Connection: close\r\n\r\n";
                     byte[] httpReqBytes = Encoding.ASCII.GetBytes(httpReq);
@@ -590,54 +590,55 @@ namespace Torify
 
         static void Logo()
         {
-            Console.Clear();
-            Console.ForegroundColor = ConsoleColor.Magenta;
-            Console.WriteLine("\n  ========================");
-            Console.WriteLine("    Torify v1.3");
-            Console.WriteLine("  ========================");
-            Console.ForegroundColor = ConsoleColor.Gray;
-            Console.WriteLine("  Tor + Proxychains for Windows");
-            Console.ForegroundColor = ConsoleColor.Magenta;
-            Console.WriteLine("  ========================\n");
+            try { Console.Clear(); } catch { }
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine();
+            Console.WriteLine("  \u2552\u2500 torify \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 v1.4 \u2555");
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.WriteLine("  \u2502 tor proxy automation for windows       \u2502");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine("  \u2558\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u255b");
             Console.ResetColor();
+            Console.WriteLine();
         }
 
         static void DrawMenu()
         {
             Logo();
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine("  [1] Iniciar Tor + Verificar Conex\u00e3o");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine("   1  start tor + verify connection");
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.WriteLine("      boots tor, rotates ip, runs a check\n");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine("   2  check ip");
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.WriteLine("      real ip vs tor ip, side by side\n");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine("   3  configure");
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.WriteLine("      set the target executable path\n");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine("   4  add app");
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.WriteLine("      pick an .exe and launch it via tor\n");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine("   5  open app via tor");
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.WriteLine("      pick a saved app and launch it via tor\n");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine("   6  stop tor");
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.WriteLine("      kills the tor process\n");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine("   7  auto-rotate");
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.WriteLine("      opens app and rotates ip on a timer\n");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine("   0  exit\n");
             Console.ResetColor();
-            Console.WriteLine("      Sobe o Tor, rotaciona IP e testa\n");
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine("  [2] Conferir IP");
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.Write("  \u203a ");
             Console.ResetColor();
-            Console.WriteLine("      Mostra IP real vs IP do Tor\n");
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine("  [3] Configurar");
-            Console.ResetColor();
-            Console.WriteLine("      Caminho personalizado do execut\u00e1vel\n");
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine("  [4] Adicionar App");
-            Console.ResetColor();
-            Console.WriteLine("      Seleciona um .exe e abre via Tor\n");
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine("  [5] Abrir App com Tor");
-            Console.ResetColor();
-            Console.WriteLine("      Escolhe um app salvo e abre via Tor\n");
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine("  [6] Parar Tor");
-            Console.ResetColor();
-            Console.WriteLine("      Encerra o processo do Tor\n");
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine("  [7] Auto-Rotate (torsocks mode)");
-            Console.ResetColor();
-            Console.WriteLine("      Abre app + rotaciona IP automaticamente\n");
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine("  [0] Sair\n");
-            Console.ResetColor();
-            Console.WriteLine("  ========================\n");
-            Console.Write("  Escolha uma op\u00e7\u00e3o: ");
         }
 
         static void WaitAndBack()
@@ -1350,7 +1351,7 @@ namespace Torify
         {
             try
             {
-                Console.Title = "Torify v1.3";
+                Console.Title = "Torify v1.4";
                 SetConsoleEncoding();
                 ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
                 InitPaths();
