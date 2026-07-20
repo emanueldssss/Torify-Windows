@@ -12,7 +12,7 @@ using System.Net.Sockets;
 using System.Windows.Forms;
 
 /* =========================================================================
-   TORIFY v1.5  —  by Emanuel Domingues (eds / emanueldssss)
+   TORIFY v1.5  —  by Emanuel D. (eds / emanueldssss)
    Todos os direitos reservados. Copia nao autorizada = roubo de codigo.
    ========================================================================= */
 
@@ -565,7 +565,7 @@ class Server
         }
         if (path == "/about")
         {
-            Z_Json(ctx, "{\"ok\":true,\"author\":\"Emanuel Domingues\",\"nick\":\"eds / emanueldssss\",\"version\":\"1.5\"}"); return;
+            Z_Json(ctx, "{\"ok\":true,\"author\":\"Emanuel D.\",\"nick\":\"eds / emanueldssss\",\"version\":\"1.5\"}"); return;
         }
         if (path == "/proxy")
         {

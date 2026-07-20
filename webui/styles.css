@@ -132,6 +132,10 @@ body{
 .app-name .icon{color:var(--text)}
 .app-state{font-family:var(--mono);font-size:10px;color:var(--muted);
   padding:3px 8px;border:1px solid var(--border2);border-radius:20px}
+.cmd{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--text);
+  background:var(--accent-soft);border:1px solid var(--text);border-radius:8px;
+  padding:11px 14px;margin:8px 0;letter-spacing:.4px;
+  box-shadow:0 0 0 3px rgba(255,255,255,.04);word-break:break-all}
 .app-state.active{color:var(--text);border-color:var(--text)}
 .app-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;transition:.2s}
 .app-del:hover{color:var(--text)}
