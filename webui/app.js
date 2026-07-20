@@ -78,11 +78,11 @@ async function api(path, opts){
 
 async function startTor(){
   const btn = $("#startBtn"); btn.disabled = true;
-  logEl($("#logHome"), "> iniciando tor…");
+  logEl($("#logHome"), "> iniciando tor (pode baixar o binario na primeira vez)…");
   let r = await api("/start", {method:"POST"});
   let j = await r.json().catch(()=>({}));
-  if(j.ok){ logEl($("#logHome"), "✓ tor ativo", "ok"); setStatus(true); toast("tor online"); }
-  else { logEl($("#logHome"), "✗ "+(j.err||"falha"), "err"); toast("falha ao iniciar"); }
+  if(j.ok){ logEl($("#logHome"), "✓ tor ativo — roteando via socks", "ok"); setStatus(true); toast("tor online"); }
+  else { logEl($("#logHome"), "✗ "+(j.msg||"falha ao iniciar"), "err"); toast("falha: "+(j.msg||"")); }
   btn.disabled = false; await refreshStatus();
 }
 
